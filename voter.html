@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Prediction Market</title>
+    <style>
+        :root {
+            --primary: #0066FF; --yes: #00AB6B; --no: #E11D48;
+            --bg: #F3F4F6; --card: #FFFFFF; --text: #111827;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 24px; color: #000; }
+        .market-card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; width: 100%; max-width: 400px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        .question { font-size: 1.1rem; font-weight: 600; line-height: 1.4; margin-bottom: 20px; }
+        
+        /* Sleek Gauge */
+        .gauge-box { position: relative; width: 200px; height: 100px; margin: 0 auto 20px auto; }
+        .gauge-bg { width: 200px; height: 100px; background: #e5e7eb; border-radius: 100px 100px 0 0; position: relative; overflow: hidden; }
+        .gauge-fill { position: absolute; top: 0; left: 0; width: 200px; height: 100px; background: var(--primary); transform-origin: center bottom; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .gauge-inner { position: absolute; top: 15px; left: 15px; width: 170px; height: 85px; background: var(--card); border-radius: 85px 85px 0 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; font-weight: 800; font-size: 1.5rem; }
+        
+        .btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn { border: none; border-radius: 10px; padding: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.1s; color: white; }
+        .btn-yes { background: var(--yes); border-bottom: 4px solid #008453; }
+        .btn-no { background: var(--no); border-bottom: 4px solid #b91c1c; }
+        .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+    </style>
+</head>
+<body>
+
+    <h1>PREDICTION MARKET</h1>
+    <div id="markets"></div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycby5ydutkwcLIEnp973V88-Xi4DZ3jWX5qqz5xB1wiNfED59b-o7bhvNqMP7URx6rpJL/exec";
+
+        async function updateData() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            document.getElementById('markets').innerHTML = data.map((q, i) => `
+                <div class="market-card">
+                    <div class="question">${q.question}</div>
+                    <div class="gauge-box">
+                        <div class="gauge-bg">
+                            <div class="gauge-fill" style="transform: rotate(${q.percent / 100}turn)"></div>
+                            <div class="gauge-inner">${q.percent}¢</div>
+                        </div>
+                    </div>
+                    <div class="btn-container">
+                        <button class="btn btn-yes" onclick="vote(${i}, 'yes')">Yes / Buy</button>
+                        <button class="btn btn-no" onclick="vote(${i}, 'no')">No / Sell</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function vote(index, type) {
+            fetch(`${API_URL}?qIndex=${index}&vote=${type}`, { mode: 'no-cors' });
+            setTimeout(updateData, 500); // Slight delay to allow Sheet to update
+        }
+
+        updateData();
+        setInterval(updateData, 5000);
+    </script>
+</body>
+</html>
