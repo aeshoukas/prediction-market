@@ -7,61 +7,86 @@
     <style>
         :root {
             --primary: #0066FF; --yes: #00AB6B; --no: #E11D48;
-            --bg: #F3F4F6; --card: #FFFFFF; --text: #111827;
+            --bg: #F0F2F5; --card: #FFFFFF; --text: #111827;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 24px; color: #000; }
-        .market-card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; width: 100%; max-width: 400px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
-        .question { font-size: 1.1rem; font-weight: 600; line-height: 1.4; margin-bottom: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; display: flex; flex-direction: column; align-items: center; }
+        .nav { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .nav .brand { font-weight: 800; font-size: 1.25rem; color: #000; letter-spacing: -0.5px; }
+        .market-card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #E5E7EB; box-sizing: border-box; }
+        .question { font-size: 1.1rem; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
         
-        /* Sleek Gauge */
-        .gauge-box { position: relative; width: 200px; height: 100px; margin: 0 auto 20px auto; }
-        .gauge-bg { width: 200px; height: 100px; background: #e5e7eb; border-radius: 100px 100px 0 0; position: relative; overflow: hidden; }
-        .gauge-fill { position: absolute; top: 0; left: 0; width: 200px; height: 100px; background: var(--primary); transform-origin: center bottom; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .gauge-inner { position: absolute; top: 15px; left: 15px; width: 170px; height: 85px; background: var(--card); border-radius: 85px 85px 0 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; font-weight: 800; font-size: 1.5rem; }
+        /* The Market Bar */
+        .bar-container { position: relative; height: 8px; background: #E5E7EB; border-radius: 4px; margin: 20px 0; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--primary); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .odds-row { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #6B7280; margin-bottom: 4px; }
+
+        /* Buttons */
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn { border: none; border-radius: 12px; padding: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.1s, opacity 0.2s; color: white; }
+        .btn-yes { background: var(--yes); box-shadow: 0 4px 0 #008453; }
+        .btn-no { background: var(--no); box-shadow: 0 4px 0 #B91C1C; }
+        .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 transparent; }
         
-        .btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn { border: none; border-radius: 10px; padding: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.1s; color: white; }
-        .btn-yes { background: var(--yes); border-bottom: 4px solid #008453; }
-        .btn-no { background: var(--no); border-bottom: 4px solid #b91c1c; }
-        .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+        #toast { position: fixed; bottom: 30px; background: #111827; color: white; padding: 12px 24px; border-radius: 30px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
     </style>
 </head>
 <body>
+    <div class="nav">
+        <div class="brand">MARKETS</div>
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--yes);">● LIVE</div>
+    </div>
+    
+    <div id="market-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        </div>
 
-    <h1>PREDICTION MARKET</h1>
-    <div id="markets"></div>
+    <div id="toast">Order executed</div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycby5ydutkwcLIEnp973V88-Xi4DZ3jWX5qqz5xB1wiNfED59b-o7bhvNqMP7URx6rpJL/exec";
+        // REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL
+        const API_URL = "https://script.google.com/macros/s/AKfycbwNYTlmO6HWFgHIPwVuXCSAWcrcoNoHVTPgDpbwOuVdhLUxsQ6epzYtG38-PTgFRDOo/exec";
 
-        async function updateData() {
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            document.getElementById('markets').innerHTML = data.map((q, i) => `
+        async function fetchMarkets() {
+            try {
+                const res = await fetch(`${API_URL}?get=data`);
+                const data = await res.json();
+                render(data);
+            } catch (e) { console.error("Fetch failed", e); }
+        }
+
+        function render(data) {
+            document.getElementById('market-list').innerHTML = data.map((m, i) => `
                 <div class="market-card">
-                    <div class="question">${q.question}</div>
-                    <div class="gauge-box">
-                        <div class="gauge-bg">
-                            <div class="gauge-fill" style="transform: rotate(${q.percent / 100}turn)"></div>
-                            <div class="gauge-inner">${q.percent}¢</div>
-                        </div>
+                    <div class="question">${m.question}</div>
+                    <div class="odds-row">
+                        <span style="color: var(--yes)">YES ${m.percent}¢</span>
+                        <span>NO ${100 - m.percent}¢</span>
                     </div>
-                    <div class="btn-container">
-                        <button class="btn btn-yes" onclick="vote(${i}, 'yes')">Yes / Buy</button>
-                        <button class="btn btn-no" onclick="vote(${i}, 'no')">No / Sell</button>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width: ${m.percent}%"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-yes" onclick="vote(${i}, 'yes')">Buy Yes</button>
+                        <button class="btn btn-no" onclick="vote(${i}, 'no')">Buy No</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        async function vote(index, type) {
-            fetch(`${API_URL}?qIndex=${index}&vote=${type}`, { mode: 'no-cors' });
-            setTimeout(updateData, 500); // Slight delay to allow Sheet to update
+        async function vote(index, side) {
+            // Visual feedback
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 2000);
+
+            // Send to Google
+            await fetch(`${API_URL}?qIndex=${index}&vote=${side}`, { mode: 'no-cors' });
+            
+            // Refresh local data after short delay
+            setTimeout(fetchMarkets, 1000);
         }
 
-        updateData();
-        setInterval(updateData, 5000);
+        fetchMarkets();
+        setInterval(fetchMarkets, 5000); // Pulse every 5s
     </script>
 </body>
 </html>
