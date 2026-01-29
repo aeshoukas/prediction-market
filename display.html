@@ -2,218 +2,64 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LIVE EVENT MARKETS | HD DISPLAY</title>
+    <title>MARKET BOARD</title>
     <style>
-        :root {
-            --bg: #0b0e11;      /* Deep Polymarket Navy/Black */
-            --card: #161a1e;    /* Slightly lighter card bg */
-            --border: #2b2f36;
-            --text-main: #ffffff;
-            --text-dim: #848e9c;
-            --yes-green: #00c076;
-            --no-red: #ff3b30;
-            --accent-blue: #0066ff;
+        body { 
+            background: #0b0e11; color: #fff; font-family: sans-serif; 
+            margin: 0; padding: 50px; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; box-sizing: border-box;
         }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            font-family: 'Inter', -apple-system, sans-serif;
-            margin: 0;
-            padding: 40px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; /* Keeps it locked to the screen size */
+        .header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #2b2f36; padding-bottom: 20px; margin-bottom: 40px; }
+        .header h1 { margin: 0; font-size: 2.5vw; letter-spacing: -1px; font-weight: 900; }
+        
+        .market-row { 
+            display: grid; grid-template-columns: 2.5fr 1fr 1.5fr; 
+            align-items: center; gap: 50px; padding: 25px;
+            background: #161a1e; border: 1px solid #2b2f36; border-radius: 20px; margin-bottom: 20px;
         }
-
-        /* Top Header Area */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--border);
-            margin-bottom: 30px;
-        }
-
-        .title-group h1 {
-            margin: 0;
-            font-size: 2.5rem;
-            letter-spacing: -1px;
-            text-transform: uppercase;
-            font-weight: 900;
-        }
-
-        .live-status {
-            color: var(--yes-green);
-            font-weight: bold;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .pulse {
-            width: 12px;
-            height: 12px;
-            background: var(--yes-green);
-            border-radius: 50%;
-            animation: pulse-animation 2s infinite;
-        }
-
-        @keyframes pulse-animation {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 192, 118, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 192, 118, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 192, 118, 0); }
-        }
-
-        /* Market Rows */
-        .market-list {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            flex-grow: 1;
-        }
-
-        .market-row {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 30px;
-            display: grid;
-            grid-template-columns: 2fr 1fr 1.5fr;
-            align-items: center;
-            gap: 40px;
-        }
-
-        .question-col .q-label {
-            color: var(--text-dim);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .question-col .q-text {
-            font-size: 2.2rem;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        .price-col {
-            text-align: center;
-            border-left: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-        }
-
-        .price-val {
-            font-size: 5rem;
-            font-weight: 900;
-            font-family: 'Courier New', monospace; /* Ticker style */
-        }
-
-        .price-label {
-            font-size: 1rem;
-            color: var(--text-dim);
-            margin-top: -10px;
-        }
-
-        .visual-col .bar-bg {
-            background: #2b2f36;
-            height: 24px;
-            border-radius: 12px;
-            overflow: hidden;
-            width: 100%;
-            position: relative;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-blue), var(--yes-green));
-            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            font-size: 1.1rem;
-            color: var(--text-dim);
-        }
-
-        .qr-code-zone {
-            position: absolute;
-            bottom: 40px;
-            right: 40px;
-            text-align: center;
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            color: black;
-        }
+        .q-text { font-size: 2.2vw; font-weight: 700; line-height: 1.2; }
+        .price-col { text-align: right; }
+        .price-val { font-size: 5vw; font-weight: 900; font-family: 'Inter', sans-serif; color: #00c076; }
+        .bar-container { background: #2b2f36; height: 24px; border-radius: 12px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #0066FF; transition: width 1.5s ease-in-out; }
+        .stats { margin-top: 10px; font-size: 1.2vw; color: #848e9c; font-weight: 600; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
-
     <div class="header">
-        <div class="title-group">
-            <h1>PREDICTION MARKET LIVE</h1>
-        </div>
-        <div class="live-status">
-            <div class="pulse"></div> UPDATING IN REAL-TIME
-        </div>
+        <h1>LIVE PREDICTION MARKETS</h1>
+        <div style="color: #00c076; font-weight: bold; font-size: 1.5vw;">● UPDATING LIVE</div>
     </div>
-
-    <div id="market-container" class="market-list">
-        </div>
-
-    <div class="qr-code-zone">
-        <div style="font-weight:bold; font-size: 0.8rem; margin-bottom:5px;">VOTE HERE:</div>
-        <div id="qrcode-placeholder" style="width:100px; height:100px; background:#ccc; display:flex; align-items:center; justify-content:center; font-size:10px;">QR CODE</div>
-    </div>
+    <div id="board"></div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycby5ydutkwcLIEnp973V88-Xi4DZ3jWX5qqz5xB1wiNfED59b-o7bhvNqMP7URx6rpJL/exec"; // Replace with your Google Apps Script URL
+        const API_URL = "https://script.google.com/macros/s/AKfycbwNYTlmO6HWFgHIPwVuXCSAWcrcoNoHVTPgDpbwOuVdhLUxsQ6epzYtG38-PTgFRDOo/exec";
 
-        async function refreshMarkets() {
+        async function refresh() {
             try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                
-                const container = document.getElementById('market-container');
-                container.innerHTML = data.map(m => `
+                const res = await fetch(`${API_URL}?get=data`);
+                const data = await res.json();
+                document.getElementById('board').innerHTML = data.map(m => `
                     <div class="market-row">
-                        <div class="question-col">
-                            <div class="q-label">Market Question</div>
-                            <div class="q-text">${m.question}</div>
-                        </div>
+                        <div class="q-text">${m.question}</div>
                         <div class="price-col">
-                            <div class="price-val" style="color: ${m.percent > 50 ? 'var(--yes-green)' : 'var(--no-red)'}">
-                                ${m.percent}¢
-                            </div>
-                            <div class="price-label">CHANCE OF YES</div>
+                            <div class="price-val">${m.percent}¢</div>
                         </div>
-                        <div class="visual-col">
-                            <div class="bar-bg">
+                        <div>
+                            <div class="bar-container">
                                 <div class="bar-fill" style="width: ${m.percent}%"></div>
                             </div>
                             <div class="stats">
-                                <span>NO: ${100 - m.percent}%</span>
+                                <span>NO ${100 - m.percent}%</span>
                                 <span>VOL: ${m.yes + m.no}</span>
-                                <span>YES: ${m.percent}%</span>
                             </div>
                         </div>
                     </div>
                 `).join('');
-            } catch (err) {
-                console.error("Data fetch error:", err);
-            }
+            } catch(e) {}
         }
-
-        // Initial load and set interval
-        refreshMarkets();
-        setInterval(refreshMarkets, 3000); // 3-second refresh for the big screen
+        setInterval(refresh, 3000);
+        refresh();
     </script>
 </body>
 </html>
