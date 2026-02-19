@@ -44,14 +44,19 @@
         async function update() {
             try {
                 const res = await fetch(API_URL);
-                const data = await res.json();
+                let data = await res.json();
                 
-                document.getElementById('q-text').innerText = data.question;
-                document.getElementById('price').innerText = data.percent + "¢";
-                document.getElementById('vol').innerText = "Total Votes: " + (data.yes + data.no);
-
-                updateChart(data.history);
-            } catch(e) {}
+                // SAFETY: If Google sent an array [{}], grab the first item
+                if (Array.isArray(data)) { data = data[0]; }
+        
+                document.getElementById('q-text').innerText = data.question || "No Question Found";
+                document.getElementById('price').innerText = (data.percent || 50) + "¢";
+                document.getElementById('vol').innerText = "Total Votes: " + ((data.yes || 0) + (data.no || 0));
+        
+                if (data.history) { updateChart(data.history); }
+            } catch(e) {
+                console.error("Layout Error:", e);
+            }
         }
 
         function updateChart(historyData) {
