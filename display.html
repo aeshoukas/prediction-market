@@ -22,10 +22,30 @@
         .price-overlay { position: absolute; bottom: 2px; width: 100%; text-align: center; }
         .price-val { font-size: 68px; font-weight: 900; color: var(--green); line-height: 0.8; letter-spacing: -2px; }
         .price-label { font-size: 13px; color: var(--text-secondary); font-weight: 800; text-transform: uppercase; }
+        
         .question-section { text-align: left; }
         .question-text { font-size: 3.5vw; font-weight: 700; line-height: 1.2; margin: 0; color: #ffffff; }
-        .qr-section { width: 300px; height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .qr-image { width: 240px; height: 240px; border-radius: 12px; border: 4px solid #fff; }
+
+        /* QR Code with Integrated Label */
+        .qr-section { width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
+        .qr-container { 
+            background: #fff; 
+            padding: 10px; 
+            border-radius: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .qr-callout { 
+            color: #000; 
+            font-weight: 900; 
+            font-size: 24px; 
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+        .qr-image { width: 220px; height: 220px; display: block; }
+
         .chart-frame { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; position: relative; }
         .live-indicator { position: absolute; top: 20px; right: 30px; color: var(--green); font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; }
         .dot { height: 8px; width: 8px; background-color: var(--green); border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
@@ -40,16 +60,26 @@
                 <div class="price-overlay"><div id="price" class="price-val">--¢</div><div class="price-label">Chance of YES</div></div>
             </div>
         </div>
+
         <div class="question-section"><h1 id="q-text" class="question-text">Connecting...</h1></div>
-        <div class="qr-section"><img src="vote_qr.jpg" class="qr-image"></div>
+
+        <div class="qr-section">
+            <div class="qr-container">
+                <div class="qr-callout">BET NOW</div>
+                <img src="vote_qr.jpg" class="qr-image" alt="QR Code">
+            </div>
+        </div>
     </div>
+
     <div class="chart-frame">
         <div class="live-indicator"><span class="dot"></span> LIVE SENTIMENT</div>
         <canvas id="feverLineChart"></canvas>
     </div>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwNYTlmO6HWFgHIPwVuXCSAWcrcoNoHVTPgDpbwOuVdhLUxsQ6epzYtG38-PTgFRDOo/exec";
         let gaugeChart, feverChart;
+
         async function update() {
             try {
                 const res = await fetch(API_URL); let data = await res.json(); if (Array.isArray(data)) data = data[0];
@@ -58,6 +88,7 @@
                 drawGauge(data.percent || 50); drawFever(data.history || [50]);
             } catch(e) { console.error(e); }
         }
+
         function drawGauge(val) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
             if (gaugeChart) { gaugeChart.data.datasets[0].data = [val, 100 - val]; gaugeChart.update(); return; }
@@ -66,6 +97,7 @@
                 options: { cutout: '90%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
             });
         }
+
         function drawFever(history) {
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             if (feverChart) { feverChart.data.labels = history.map((_, i) => i); feverChart.data.datasets[0].data = history; feverChart.update('none'); return; }
@@ -75,7 +107,17 @@
                 options: { 
                     maintainAspectRatio: false, plugins: { legend: { display: false } },
                     scales: { 
-                        y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: { weight: '900', size: 24 }, stepSize: 25, padding: 10, callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' } },
+                        y: { 
+                            min: 0, max: 100, 
+                            grid: { color: '#2b2f36' }, 
+                            ticks: { 
+                                color: '#ffffff', 
+                                font: { weight: '900', size: 24 }, 
+                                stepSize: 25, 
+                                padding: 10, 
+                                callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' 
+                            } 
+                        },
                         x: { display: false } 
                     }
                 }
