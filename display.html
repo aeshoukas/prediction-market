@@ -4,35 +4,133 @@
     <title>MARKET BOARD</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #0b0e11; color: #fff; font-family: sans-serif; margin: 0; padding: 30px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        .header { text-align: center; margin-bottom: 10px; }
-        .question { font-size: 3vw; font-weight: 800; }
-        
-        .top-row { display: flex; justify-content: center; align-items: center; gap: 50px; margin-bottom: 20px; }
-        
-        /* Gauge Container */
-        .gauge-wrapper { position: relative; width: 300px; height: 150px; }
-        .price-overlay { position: absolute; bottom: 0; width: 100%; text-align: center; }
-        .price-val { font-size: 5vw; font-weight: 900; color: #00c076; margin-bottom: -10px; }
-        
-        /* Fever Chart Container */
-        .chart-frame { flex-grow: 1; background: #161a1e; border: 1px solid #2b2f36; border-radius: 20px; padding: 20px; min-height: 250px; }
+        :root {
+            --bg: #0b0e11;
+            --card: #161a1e;
+            --green: #00c076;
+            --blue: #0066FF;
+            --border: #2b2f36;
+            --text-secondary: #848e9c;
+        }
+
+        body { 
+            background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; 
+            margin: 0; padding: 20px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Top Section Layout */
+        .top-container {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            height: 320px; /* Account for padding */
+        }
+
+        /* Fixed 300x300 Gauge Area */
+        .gauge-section {
+            width: 300px;
+            height: 300px;
+            position: relative;
+            flex-shrink: 0; /* Prevents shrinking */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .gauge-wrapper {
+            position: relative;
+            width: 300px;
+            height: 150px; /* Semi-circle height */
+        }
+
+        .price-overlay {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        .price-val {
+            font-size: 80px;
+            font-weight: 900;
+            color: var(--green);
+            line-height: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .price-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Question Area */
+        .question-section {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .question-text {
+            font-size: 4.5vw; /* Scales with screen width */
+            font-weight: 800;
+            line-height: 1.1;
+            margin: 0;
+            color: #ffffff;
+            border-left: 8px solid var(--blue);
+            padding-left: 30px;
+        }
+
+        /* Fever Chart Area */
+        .chart-frame {
+            flex-grow: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 25px;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .live-indicator {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: var(--green);
+            font-weight: 800;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot { height: 8px; width: 8px; background-color: var(--green); border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-    <div class="header"><div id="q-text" class="question">Loading...</div></div>
 
-    <div class="top-row">
-        <div class="gauge-wrapper">
-            <canvas id="gaugeChart"></canvas>
-            <div class="price-overlay">
-                <div id="price" class="price-val">--¢</div>
-                <div style="color: #848e9c; font-weight: bold;">CHANCE OF YES</div>
+    <div class="top-container">
+        <div class="gauge-section">
+            <div class="gauge-wrapper">
+                <canvas id="gaugeChart"></canvas>
+                <div class="price-overlay">
+                    <div id="price" class="price-val">--¢</div>
+                    <div class="price-label">Chance of YES</div>
+                </div>
             </div>
+        </div>
+
+        <div class="question-section">
+            <h1 id="q-text" class="question-text">Connecting to market...</h1>
         </div>
     </div>
 
     <div class="chart-frame">
+        <div class="live-indicator"><span class="dot"></span> LIVE SENTIMENT</div>
         <canvas id="feverLineChart"></canvas>
     </div>
 
@@ -47,11 +145,11 @@
                 if (Array.isArray(data)) data = data[0];
 
                 document.getElementById('q-text').innerText = data.question;
-                document.getElementById('price').innerText = data.percent + "¢";
+                document.getElementById('price').innerText = (data.percent || 50) + "¢";
                 
-                drawGauge(data.percent);
+                drawGauge(data.percent || 50);
                 drawFever(data.history || [50]);
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Update error:", e); }
         }
 
         function drawGauge(val) {
@@ -70,10 +168,15 @@
                         borderWidth: 0,
                         circumference: 180,
                         rotation: 270,
-                        borderRadius: 10
+                        borderRadius: 20 // Rounded edges
                     }]
                 },
-                options: { cutout: '85%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                options: { 
+                    cutout: '82%', 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } } 
+                }
             });
         }
 
@@ -82,7 +185,7 @@
             if (feverChart) {
                 feverChart.data.labels = history.map((_, i) => i);
                 feverChart.data.datasets[0].data = history;
-                feverChart.update();
+                feverChart.update('none');
                 return;
             }
             feverChart = new Chart(ctx, {
@@ -92,9 +195,17 @@
                     datasets: [{
                         data: history,
                         borderColor: '#0066FF',
-                        borderWidth: 4,
+                        borderWidth: 5,
                         fill: true,
-                        backgroundColor: 'rgba(0, 102, 255, 0.1)',
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, 'rgba(0, 102, 255, 0.3)');
+                            gradient.addColorStop(1, 'rgba(0, 102, 255, 0)');
+                            return gradient;
+                        },
                         tension: 0.4,
                         pointRadius: 0
                     }]
@@ -102,7 +213,14 @@
                 options: { 
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' } }, x: { display: false } }
+                    scales: { 
+                        y: { 
+                            min: 0, max: 100, 
+                            grid: { color: '#2b2f36' },
+                            ticks: { color: '#848e9c', font: { weight: 'bold' } }
+                        }, 
+                        x: { display: false } 
+                    }
                 }
             });
         }
