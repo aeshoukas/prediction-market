@@ -3,90 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Prediction Market</title>
+    <title>Live Vote</title>
     <style>
-        :root {
-            --primary: #0066FF; --yes: #00AB6B; --no: #E11D48;
-            --bg: #F0F2F5; --card: #FFFFFF; --text: #111827;
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; display: flex; flex-direction: column; align-items: center; }
-        .nav { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .nav .brand { font-weight: 800; font-size: 1.25rem; color: #000; letter-spacing: -0.5px; }
-        .market-card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #E5E7EB; box-sizing: border-box; }
-        .question { font-size: 1.1rem; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
-        
-        /* The Market Bar */
-        .bar-container { position: relative; height: 8px; background: #E5E7EB; border-radius: 4px; margin: 20px 0; overflow: hidden; }
-        .bar-fill { height: 100%; background: var(--primary); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .odds-row { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #6B7280; margin-bottom: 4px; }
-
-        /* Buttons */
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn { border: none; border-radius: 12px; padding: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.1s, opacity 0.2s; color: white; }
-        .btn-yes { background: var(--yes); box-shadow: 0 4px 0 #008453; }
-        .btn-no { background: var(--no); box-shadow: 0 4px 0 #B91C1C; }
-        .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 transparent; }
-        
-        #toast { position: fixed; bottom: 30px; background: #111827; color: white; padding: 12px 24px; border-radius: 30px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        :root { --yes: #00AB6B; --no: #E11D48; --bg: #F0F2F5; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; box-sizing: border-box; }
+        .card { background: white; border-radius: 24px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        h1 { font-size: 1.5rem; margin-bottom: 30px; line-height: 1.3; font-weight: 800; }
+        .btn { border: none; border-radius: 16px; padding: 20px; font-weight: 800; font-size: 1.2rem; cursor: pointer; color: white; width: 100%; margin-bottom: 15px; transition: transform 0.1s; }
+        .btn-yes { background: var(--yes); border-bottom: 6px solid #008453; }
+        .btn-no { background: var(--no); border-bottom: 6px solid #B91C1C; }
+        .btn:active { transform: translateY(4px); border-bottom-width: 2px; }
+        #status { margin-top: 10px; color: #666; font-weight: 600; min-height: 1.2em; }
     </style>
 </head>
 <body>
-    <div class="nav">
-        <div class="brand">MARKETS</div>
-        <div style="font-size: 0.8rem; font-weight: 600; color: var(--yes);">● LIVE</div>
+    <div class="card">
+        <h1 id="question">Loading...</h1>
+        <button class="btn btn-yes" onclick="vote('yes')">YES</button>
+        <button class="btn btn-no" onclick="vote('no')">NO</button>
+        <div id="status"></div>
     </div>
-    
-    <div id="market-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-        </div>
-
-    <div id="toast">Order executed</div>
 
     <script>
-        // REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL
-        const API_URL = "https://script.google.com/macros/s/AKfycbwNYTlmO6HWFgHIPwVuXCSAWcrcoNoHVTPgDpbwOuVdhLUxsQ6epzYtG38-PTgFRDOo/exec";
+        const API_URL = "YOUR_SCRIPT_URL"; // REPLACE THIS
 
-        async function fetchMarkets() {
-            try {
-                const res = await fetch(`${API_URL}?get=data`);
-                const data = await res.json();
-                render(data);
-            } catch (e) { console.error("Fetch failed", e); }
+        async function getQ() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            document.getElementById('question').innerText = data.question;
         }
 
-        function render(data) {
-            document.getElementById('market-list').innerHTML = data.map((m, i) => `
-                <div class="market-card">
-                    <div class="question">${m.question}</div>
-                    <div class="odds-row">
-                        <span style="color: var(--yes)">YES ${m.percent}¢</span>
-                        <span>NO ${100 - m.percent}¢</span>
-                    </div>
-                    <div class="bar-container">
-                        <div class="bar-fill" style="width: ${m.percent}%"></div>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-yes" onclick="vote(${i}, 'yes')">Buy Yes</button>
-                        <button class="btn btn-no" onclick="vote(${i}, 'no')">Buy No</button>
-                    </div>
-                </div>
-            `).join('');
+        async function vote(side) {
+            const status = document.getElementById('status');
+            status.innerText = "Vote sent!";
+            // qIndex is 0 because we only have one question now
+            await fetch(`${API_URL}?qIndex=0&vote=${side}`, { mode: 'no-cors' });
+            setTimeout(() => { status.innerText = ""; }, 2000);
         }
 
-        async function vote(index, side) {
-            // Visual feedback
-            const toast = document.getElementById('toast');
-            toast.style.opacity = '1';
-            setTimeout(() => toast.style.opacity = '0', 2000);
-
-            // Send to Google
-            await fetch(`${API_URL}?qIndex=${index}&vote=${side}`, { mode: 'no-cors' });
-            
-            // Refresh local data after short delay
-            setTimeout(fetchMarkets, 1000);
-        }
-
-        fetchMarkets();
-        setInterval(fetchMarkets, 5000); // Pulse every 5s
+        getQ();
     </script>
 </body>
 </html>
