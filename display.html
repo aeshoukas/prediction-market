@@ -1,65 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>MARKET BOARD</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { 
-            background: #0b0e11; color: #fff; font-family: sans-serif; 
-            margin: 0; padding: 50px; height: 100vh; overflow: hidden;
-            display: flex; flex-direction: column; box-sizing: border-box;
+            background: #0b0e11; color: #fff; font-family: 'Inter', sans-serif; 
+            margin: 0; padding: 40px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
-        .header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #2b2f36; padding-bottom: 20px; margin-bottom: 40px; }
-        .header h1 { margin: 0; font-size: 2.5vw; letter-spacing: -1px; font-weight: 900; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .question { font-size: 3.5vw; font-weight: 800; margin-bottom: 10px; color: #fff; }
         
-        .market-row { 
-            display: grid; grid-template-columns: 2.5fr 1fr 1.5fr; 
-            align-items: center; gap: 50px; padding: 25px;
-            background: #161a1e; border: 1px solid #2b2f36; border-radius: 20px; margin-bottom: 20px;
-        }
-        .q-text { font-size: 2.2vw; font-weight: 700; line-height: 1.2; }
-        .price-col { text-align: right; }
-        .price-val { font-size: 5vw; font-weight: 900; font-family: 'Inter', sans-serif; color: #00c076; }
-        .bar-container { background: #2b2f36; height: 24px; border-radius: 12px; overflow: hidden; }
-        .bar-fill { height: 100%; background: #0066FF; transition: width 1.5s ease-in-out; }
-        .stats { margin-top: 10px; font-size: 1.2vw; color: #848e9c; font-weight: 600; display: flex; justify-content: space-between; }
+        .main-display { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; flex-grow: 1; align-items: center; }
+        
+        .price-card { background: #161a1e; border: 1px solid #2b2f36; border-radius: 24px; padding: 40px; text-align: center; }
+        .price-val { font-size: 10vw; font-weight: 900; color: #00c076; line-height: 1; }
+        .price-label { font-size: 1.5vw; color: #848e9c; text-transform: uppercase; letter-spacing: 2px; }
+
+        .chart-container { background: #161a1e; border: 1px solid #2b2f36; border-radius: 24px; padding: 20px; height: 100%; position: relative; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>LIVE PREDICTION MARKETS</h1>
-        <div style="color: #00c076; font-weight: bold; font-size: 1.5vw;">● UPDATING LIVE</div>
+        <div id="q-text" class="question">Loading Question...</div>
     </div>
-    <div id="board"></div>
+
+    <div class="main-display">
+        <div class="price-card">
+            <div id="price" class="price-val">--¢</div>
+            <div class="price-label">Chance of Yes</div>
+            <div id="vol" style="margin-top: 20px; color: #848e9c;">Vol: 0</div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="feverChart"></canvas>
+        </div>
+    </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwNYTlmO6HWFgHIPwVuXCSAWcrcoNoHVTPgDpbwOuVdhLUxsQ6epzYtG38-PTgFRDOo/exec";
+        const API_URL = "YOUR_SCRIPT_URL";
+        let feverChart;
 
-        async function refresh() {
+        async function update() {
             try {
-                const res = await fetch(`${API_URL}?get=data`);
+                const res = await fetch(API_URL);
                 const data = await res.json();
-                document.getElementById('board').innerHTML = data.map(m => `
-                    <div class="market-row">
-                        <div class="q-text">${m.question}</div>
-                        <div class="price-col">
-                            <div class="price-val">${m.percent}¢</div>
-                        </div>
-                        <div>
-                            <div class="bar-container">
-                                <div class="bar-fill" style="width: ${m.percent}%"></div>
-                            </div>
-                            <div class="stats">
-                                <span>NO ${100 - m.percent}%</span>
-                                <span>VOL: ${m.yes + m.no}</span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                
+                document.getElementById('q-text').innerText = data.question;
+                document.getElementById('price').innerText = data.percent + "¢";
+                document.getElementById('vol').innerText = "Total Votes: " + (data.yes + data.no);
+
+                updateChart(data.history);
             } catch(e) {}
         }
-        setInterval(refresh, 3000);
-        refresh();
+
+        function updateChart(historyData) {
+            const ctx = document.getElementById('feverChart').getContext('2d');
+            const labels = historyData.map((_, i) => i);
+            
+            if (feverChart) {
+                feverChart.data.labels = labels;
+                feverChart.data.datasets[0].data = historyData;
+                feverChart.update('none'); // Update without animation for smoothness
+            } else {
+                feverChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Probability',
+                            data: historyData,
+                            borderColor: '#0066FF',
+                            backgroundColor: 'rgba(0, 102, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#848e9c' } },
+                            x: { display: false }
+                        }
+                    }
+                });
+            }
+        }
+
+        setInterval(update, 3000);
+        update();
     </script>
 </body>
 </html>
