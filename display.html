@@ -4,95 +4,107 @@
     <title>MARKET BOARD</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { 
-            background: #0b0e11; color: #fff; font-family: 'Inter', sans-serif; 
-            margin: 0; padding: 40px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        }
-        .header { text-align: center; margin-bottom: 20px; }
-        .question { font-size: 3.5vw; font-weight: 800; margin-bottom: 10px; color: #fff; }
+        body { background: #0b0e11; color: #fff; font-family: sans-serif; margin: 0; padding: 30px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .question { font-size: 3vw; font-weight: 800; }
         
-        .main-display { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; flex-grow: 1; align-items: center; }
+        .top-row { display: flex; justify-content: center; align-items: center; gap: 50px; margin-bottom: 20px; }
         
-        .price-card { background: #161a1e; border: 1px solid #2b2f36; border-radius: 24px; padding: 40px; text-align: center; }
-        .price-val { font-size: 10vw; font-weight: 900; color: #00c076; line-height: 1; }
-        .price-label { font-size: 1.5vw; color: #848e9c; text-transform: uppercase; letter-spacing: 2px; }
-
-        .chart-container { background: #161a1e; border: 1px solid #2b2f36; border-radius: 24px; padding: 20px; height: 100%; position: relative; }
+        /* Gauge Container */
+        .gauge-wrapper { position: relative; width: 300px; height: 150px; }
+        .price-overlay { position: absolute; bottom: 0; width: 100%; text-align: center; }
+        .price-val { font-size: 5vw; font-weight: 900; color: #00c076; margin-bottom: -10px; }
+        
+        /* Fever Chart Container */
+        .chart-frame { flex-grow: 1; background: #161a1e; border: 1px solid #2b2f36; border-radius: 20px; padding: 20px; min-height: 250px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div id="q-text" class="question">Loading Question...</div>
+    <div class="header"><div id="q-text" class="question">Loading...</div></div>
+
+    <div class="top-row">
+        <div class="gauge-wrapper">
+            <canvas id="gaugeChart"></canvas>
+            <div class="price-overlay">
+                <div id="price" class="price-val">--¢</div>
+                <div style="color: #848e9c; font-weight: bold;">CHANCE OF YES</div>
+            </div>
+        </div>
     </div>
 
-    <div class="main-display">
-        <div class="price-card">
-            <div id="price" class="price-val">--¢</div>
-            <div class="price-label">Chance of Yes</div>
-            <div id="vol" style="margin-top: 20px; color: #848e9c;">Vol: 0</div>
-        </div>
-        
-        <div class="chart-container">
-            <canvas id="feverChart"></canvas>
-        </div>
+    <div class="chart-frame">
+        <canvas id="feverLineChart"></canvas>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwNYTlmO6HWFgHIPwVuXCSAWcrcoNoHVTPgDpbwOuVdhLUxsQ6epzYtG38-PTgFRDOo/exec";
-        let feverChart;
+        let gaugeChart, feverChart;
 
         async function update() {
             try {
                 const res = await fetch(API_URL);
                 let data = await res.json();
+                if (Array.isArray(data)) data = data[0];
+
+                document.getElementById('q-text').innerText = data.question;
+                document.getElementById('price').innerText = data.percent + "¢";
                 
-                // SAFETY: If Google sent an array [{}], grab the first item
-                if (Array.isArray(data)) { data = data[0]; }
-        
-                document.getElementById('q-text').innerText = data.question || "No Question Found";
-                document.getElementById('price').innerText = (data.percent || 50) + "¢";
-                document.getElementById('vol').innerText = "Total Votes: " + ((data.yes || 0) + (data.no || 0));
-        
-                if (data.history) { updateChart(data.history); }
-            } catch(e) {
-                console.error("Layout Error:", e);
-            }
+                drawGauge(data.percent);
+                drawFever(data.history || [50]);
+            } catch(e) { console.error(e); }
         }
 
-        function updateChart(historyData) {
-            const ctx = document.getElementById('feverChart').getContext('2d');
-            const labels = historyData.map((_, i) => i);
-            
-            if (feverChart) {
-                feverChart.data.labels = labels;
-                feverChart.data.datasets[0].data = historyData;
-                feverChart.update('none'); // Update without animation for smoothness
-            } else {
-                feverChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Probability',
-                            data: historyData,
-                            borderColor: '#0066FF',
-                            backgroundColor: 'rgba(0, 102, 255, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#848e9c' } },
-                            x: { display: false }
-                        }
-                    }
-                });
+        function drawGauge(val) {
+            const ctx = document.getElementById('gaugeChart').getContext('2d');
+            if (gaugeChart) {
+                gaugeChart.data.datasets[0].data = [val, 100 - val];
+                gaugeChart.update();
+                return;
             }
+            gaugeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [val, 100 - val],
+                        backgroundColor: ['#00c076', '#2b2f36'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270,
+                        borderRadius: 10
+                    }]
+                },
+                options: { cutout: '85%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+            });
+        }
+
+        function drawFever(history) {
+            const ctx = document.getElementById('feverLineChart').getContext('2d');
+            if (feverChart) {
+                feverChart.data.labels = history.map((_, i) => i);
+                feverChart.data.datasets[0].data = history;
+                feverChart.update();
+                return;
+            }
+            feverChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: history.map((_, i) => i),
+                    datasets: [{
+                        data: history,
+                        borderColor: '#0066FF',
+                        borderWidth: 4,
+                        fill: true,
+                        backgroundColor: 'rgba(0, 102, 255, 0.1)',
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' } }, x: { display: false } }
+                }
+            });
         }
 
         setInterval(update, 3000);
