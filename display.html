@@ -19,7 +19,6 @@
             box-sizing: border-box;
         }
 
-        /* Top Header Container */
         .header-container {
             display: grid;
             grid-template-columns: 300px 1fr 300px;
@@ -29,7 +28,6 @@
             margin-bottom: 20px;
         }
 
-        /* Left: Gauge Section */
         .gauge-section {
             width: 300px;
             height: 300px;
@@ -41,19 +39,20 @@
 
         .gauge-wrapper {
             position: relative;
-            width: 300px;
-            height: 150px;
+            width: 260px; /* Reduced overall width for lighter feel */
+            height: 130px;
+            margin: 0 auto;
         }
 
         .price-overlay {
             position: absolute;
-            bottom: 5px; /* Pushes text up into the arch */
+            bottom: 2px;
             width: 100%;
             text-align: center;
         }
 
         .price-val {
-            font-size: 72px;
+            font-size: 68px;
             font-weight: 900;
             color: var(--green);
             line-height: 0.8;
@@ -61,14 +60,13 @@
         }
 
         .price-label {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
             font-weight: 800;
             letter-spacing: 1px;
             text-transform: uppercase;
         }
 
-        /* Center: Question Section */
         .question-section { text-align: left; }
         .question-text {
             font-size: 3.5vw;
@@ -78,17 +76,15 @@
             color: #ffffff;
         }
 
-        /* Right: QR Code Section */
         .qr-section {
             width: 300px; height: 300px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .qr-image {
-            width: 260px; height: 260px;
+            width: 240px; height: 240px;
             border-radius: 12px; border: 4px solid #fff;
         }
 
-        /* Bottom: Fever Chart Section */
         .chart-frame {
             flex-grow: 1;
             background: var(--card);
@@ -143,10 +139,8 @@
                 const res = await fetch(API_URL);
                 let data = await res.json();
                 if (Array.isArray(data)) data = data[0];
-
                 document.getElementById('q-text').innerText = data.question;
                 document.getElementById('price').innerText = (data.percent || 50) + "¢";
-                
                 drawGauge(data.percent || 50);
                 drawFever(data.history || [50]);
             } catch(e) { console.error("Update error:", e); }
@@ -171,7 +165,12 @@
                         borderRadius: 20
                     }]
                 },
-                options: { cutout: '78%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                options: { 
+                    cutout: '90%', // 90% cutout creates a much thinner "weight"
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } } 
+                }
             });
         }
 
