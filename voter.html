@@ -30,7 +30,7 @@
         async function getQ() {
             const res = await fetch(API_URL);
             const data = await res.json();
-            document.getElementById('question').innerText = data.question;
+            document.getElementById('question').innerText = (Array.isArray(data) ? data[0].question : data.question);
         }
 
         async function vote(side) {
