@@ -14,35 +14,35 @@
         }
 
         body { 
-            background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; 
-            margin: 0; padding: 20px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            background: var(--bg); color: #fff; font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; padding: 30px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
             box-sizing: border-box;
         }
 
-        /* Top Section Layout */
-        .top-container {
-            display: flex;
-            align-items: center;
+        /* Top Header Container */
+        .header-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px; /* Locked ends, fluid middle */
             gap: 40px;
+            align-items: center;
+            height: 300px;
             margin-bottom: 20px;
-            height: 320px; /* Account for padding */
         }
 
-        /* Fixed 300x300 Gauge Area */
+        /* 1. Left: Gauge Section */
         .gauge-section {
             width: 300px;
             height: 300px;
-            position: relative;
-            flex-shrink: 0; /* Prevents shrinking */
             display: flex;
             flex-direction: column;
             justify-content: center;
+            position: relative;
         }
 
         .gauge-wrapper {
             position: relative;
             width: 300px;
-            height: 150px; /* Semi-circle height */
+            height: 150px;
         }
 
         .price-overlay {
@@ -57,7 +57,6 @@
             font-weight: 900;
             color: var(--green);
             line-height: 0.8;
-            margin-bottom: 5px;
         }
 
         .price-label {
@@ -66,32 +65,55 @@
             font-weight: 800;
             letter-spacing: 1px;
             text-transform: uppercase;
+            margin-top: 5px;
         }
 
-        /* Question Area */
+        /* 2. Center: Question Section */
         .question-section {
-            flex-grow: 1;
             text-align: left;
         }
 
         .question-text {
-            font-size: 4.5vw; /* Scales with screen width */
-            font-weight: 800;
-            line-height: 1.1;
+            font-size: 3.5vw; /* Slightly scaled back */
+            font-weight: 700;
+            line-height: 1.2;
             margin: 0;
             color: #ffffff;
-            border-left: 8px solid var(--blue);
-            padding-left: 30px;
+            /* Vertical rule removed as requested */
         }
 
-        /* Fever Chart Area */
+        /* 3. Right: QR Code Section */
+        .qr-section {
+            width: 300px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-image {
+            width: 260px; /* Margin for breathing room */
+            height: 260px;
+            border-radius: 12px;
+            border: 4px solid #fff; /* Makes the QR pop on dark background */
+        }
+
+        .qr-label {
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Bottom: Fever Chart Section */
         .chart-frame {
             flex-grow: 1;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 24px;
             padding: 25px;
-            margin-top: 10px;
             position: relative;
         }
 
@@ -113,7 +135,7 @@
 </head>
 <body>
 
-    <div class="top-container">
+    <div class="header-container">
         <div class="gauge-section">
             <div class="gauge-wrapper">
                 <canvas id="gaugeChart"></canvas>
@@ -125,7 +147,12 @@
         </div>
 
         <div class="question-section">
-            <h1 id="q-text" class="question-text">Connecting to market...</h1>
+            <h1 id="q-text" class="question-text">Connecting...</h1>
+        </div>
+
+        <div class="qr-section">
+            <img src="vote_qr.jpg" class="qr-image" alt="Scan to Vote">
+            <div class="qr-label">Scan to predict</div>
         </div>
     </div>
 
@@ -168,7 +195,7 @@
                         borderWidth: 0,
                         circumference: 180,
                         rotation: 270,
-                        borderRadius: 20 // Rounded edges
+                        borderRadius: 20
                     }]
                 },
                 options: { 
