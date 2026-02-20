@@ -7,29 +7,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #0b0e11; --card: #161a1e; --green: #00c076; --red: #ff3b30; --border: #2b2f36; --text-secondary: #848e9c; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
         
-        body { 
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg); 
-            color: #fff; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            justify-content: center; /* Centers the 600px container */
-            min-height: 100vh;
-        }
-
-        /* Main Content Wrapper */
-        .container {
-            width: 100%;
-            max-width: 600px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            height: 95vh;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
+        .container { width: 100%; max-width: 600px; padding: 10px; display: flex; flex-direction: column; height: 95vh; box-sizing: border-box; overflow: hidden; }
 
         .gauge-section { flex-shrink: 0; height: 90px; display: flex; justify-content: center; align-items: flex-end; position: relative; }
         .gauge-wrapper { width: 160px; height: 80px; position: relative; }
@@ -40,20 +20,8 @@
         h1 { font-size: 1.2rem; margin: 0; line-height: 1.2; font-weight: 800; }
 
         .chart-container { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 12px; min-height: 50px; }
-
-        .identity-box { 
-            flex-shrink: 0; 
-            margin-bottom: 10px; 
-            padding: 14px; 
-            background: #ffffff; 
-            color: #444444; 
-            border-radius: 10px; 
-            text-align: center; 
-            font-family: 'Courier New', Courier, monospace; 
-            font-weight: 900; 
-            font-size: 18px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
+        
+        .identity-box { flex-shrink: 0; margin-bottom: 10px; padding: 14px; background: #ffffff; color: #444444; border-radius: 10px; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: 900; font-size: 18px; }
 
         .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; min-height: 85px; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 100%; }
@@ -62,18 +30,8 @@
         .btn-no { background: var(--red); box-shadow: 0 4px 0 #9f1239; }
         .btn:active { transform: translateY(2px); box-shadow: none; }
         
-        #vote-success { 
-            display: none; 
-            height: 82px; 
-            width: 100%; 
-            align-items: center; 
-            justify-content: center; 
-            background: rgba(0, 192, 118, 0.1); 
-            border-radius: 15px; 
-            border: 2px solid var(--green); 
-            box-sizing: border-box; 
-        }
-        .success-text { color: var(--green); font-weight: 900; font-size: 1.4rem; letter-spacing: 1px; }
+        #vote-status { display: none; height: 82px; width: 100%; align-items: center; justify-content: center; border-radius: 15px; border: 2px solid var(--green); box-sizing: border-box; }
+        .status-text { font-weight: 900; font-size: 1.4rem; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -84,47 +42,32 @@
                 <div class="price-overlay"><div id="price" class="price-val">--¢</div></div>
             </div>
         </div>
-        
         <div class="question-box"><h1 id="q-text">Loading...</h1></div>
-        
-        <div class="chart-container">
-            <canvas id="feverLineChart"></canvas>
-        </div>
-        
+        <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
         <div class="identity-box" id="id-display">ASSIGNING NAME...</div>
-
         <div class="action-area">
             <div id="btn-container" class="btn-group">
                 <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
                 <button class="btn btn-no" onclick="sendVote('no')">No</button>
             </div>
-            <div id="vote-success">
-                <div class="success-text">BET PLACED</div>
-            </div>
+            <div id="vote-status"><div id="status-msg" class="status-text">BET PLACED</div></div>
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzVwZ81cntz2O7X0mh2EqNtFx7X57XXjyWllAVLtjIGY2IHuTHz8n441TaLJDcfZKng/exec";
         let gaugeChart, feverChart;
-        let vGlow = 5; 
-        let vGlowDir = 0.3;
-        let myAssignedName = sessionStorage.getItem('assignedName');
+        let vGlow = 5, vGlowDir = 0.3;
+        let myName = sessionStorage.getItem('assignedName');
 
         async function assignName() {
-            if (myAssignedName) {
-                document.getElementById('id-display').innerText = "ID: " + myAssignedName;
-                return;
-            }
+            if (myName) { document.getElementById('id-display').innerText = "ID: " + myName; return; }
             try {
-                const response = await fetch(`${API_URL}?action=getName`);
-                const name = await response.text();
-                myAssignedName = name;
-                sessionStorage.setItem('assignedName', name);
-                document.getElementById('id-display').innerText = "ID: " + name;
-            } catch (e) {
-                document.getElementById('id-display').innerText = "ID: GUEST";
-            }
+                const res = await fetch(`${API_URL}?action=getName`);
+                myName = await res.text();
+                sessionStorage.setItem('assignedName', myName);
+                document.getElementById('id-display').innerText = "ID: " + myName;
+            } catch (e) { document.getElementById('id-display').innerText = "ID: GUEST"; }
         }
 
         async function update() {
@@ -136,23 +79,67 @@
                 document.getElementById('price').innerText = price + "¢";
                 document.getElementById('price').style.color = price > 49 ? '#00c076' : '#ff3b30';
                 drawGauge(price);
-                drawFever(data.history || []);
+                drawFever(data.history || [], data.labels || []);
             } catch(e) { console.error(e); }
         }
 
         function drawGauge(val) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
             const color = val > 49 ? '#00c076' : '#ff3b30';
-            if (gaugeChart) { 
-                gaugeChart.data.datasets[0].data = [val, 100-val]; 
-                gaugeChart.data.datasets[0].backgroundColor[0] = color; 
-                gaugeChart.update(); return; 
+            if (gaugeChart) { gaugeChart.data.datasets[0].data = [val, 100-val]; gaugeChart.data.datasets[0].backgroundColor[0] = color; gaugeChart.update(); return; }
+            gaugeChart = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [val, 100-val], backgroundColor: [color, '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 10 }] }, options: { cutout: '90%', maintainAspectRatio: false, plugins: { legend: {display: false}, tooltip: {enabled: false} } } });
+        }
+
+        function drawFever(history, labels) {
+            const ctx = document.getElementById('feverLineChart').getContext('2d');
+            const currentPrice = history[history.length - 1] || 50;
+            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72';
+            if (feverChart) { 
+                feverChart.data.labels = labels;
+                feverChart.data.datasets[0].data = history; 
+                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 6 : 0);
+                feverChart.data.datasets[0].pointBackgroundColor = liveColor;
+                feverChart.update('none'); return; 
             }
-            gaugeChart = new Chart(ctx, { 
-                type: 'doughnut', 
-                data: { datasets: [{ data: [val, 100-val], backgroundColor: [color, '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 10 }] }, 
-                options: { cutout: '90%', maintainAspectRatio: false, plugins: { legend: {display: false}, tooltip: {enabled: false} } } 
+            feverChart = new Chart(ctx, {
+                type: 'line', data: { labels: labels, datasets: [{ data: history, borderColor: currentPrice > 49 ? '#00c076' : '#ff3b30', borderWidth: 3, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 6 : 0), pointBackgroundColor: liveColor, pointBorderWidth: 0 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25 } }, x: { display: true, ticks: { autoSkip: true, maxTicksLimit: 6, color: '#848e9c' } } } },
+                plugins: [{ afterDraw: (chart) => {
+                    const ctx = chart.ctx; const meta = chart.getDatasetMeta(0); if (!meta.data.length) return;
+                    const lastPoint = meta.data[history.length - 1]; if(!lastPoint) return;
+                    ctx.save(); ctx.beginPath(); ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
+                    ctx.shadowBlur = vGlow; ctx.shadowColor = chart.data.datasets[0].pointBackgroundColor;
+                    ctx.fillStyle = chart.data.datasets[0].pointBackgroundColor; ctx.fill(); ctx.restore();
+                }}]
             });
         }
 
-        function draw
+        async function sendVote(side) {
+            const price = parseInt(document.getElementById('price').innerText);
+            const btns = document.getElementById('btn-container'), status = document.getElementById('vote-status'), msg = document.getElementById('status-msg');
+            btns.style.display = "none"; status.style.display = "flex";
+            
+            const res = await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(myName)}&price=${price}`);
+            const resultText = await res.text();
+            
+            if(resultText === "Market Closed") {
+                msg.innerText = "MARKET CLOSED";
+                status.style.borderColor = "#ff3b30"; msg.style.color = "#ff3b30";
+            } else {
+                msg.innerText = "BET PLACED";
+                status.style.borderColor = "#00c076"; msg.style.color = "#00c076";
+            }
+            
+            setTimeout(() => { status.style.display = "none"; btns.style.display = "grid"; update(); }, 2000);
+        }
+
+        setInterval(() => {
+            vGlow += vGlowDir; if (vGlow > 15 || vGlow < 4) vGlowDir *= -1;
+            if (feverChart) feverChart.update('none');
+        }, 50);
+
+        assignName();
+        setInterval(update, 5000); update();
+    </script>
+</body>
+</html>
