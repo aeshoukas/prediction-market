@@ -45,10 +45,9 @@
         <div id="vote-success"><div class="success-text">BET PLACED</div></div>
     </div>
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzVwZ81cntz2O7X0mh2EqNtFx7X57XXjyWllAVLtjIGY2IHuTHz8n441TaLJDcfZKng/exec";
         let gaugeChart, feverChart;
-        let vGlow = 5;
-        let vGlowDir = 0.3;
+        let vGlow = 5; let vGlowDir = 0.3;
 
         async function update() {
             try {
@@ -75,72 +74,40 @@
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
             const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72';
-
             if (feverChart) { 
                 feverChart.data.datasets[0].data = history; 
                 feverChart.data.datasets[0].borderColor = lineColor;
                 feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 6 : 0);
                 feverChart.data.datasets[0].pointBackgroundColor = liveColor;
-                feverChart.update('none'); 
-                return; 
+                feverChart.update('none'); return; 
             }
             feverChart = new Chart(ctx, {
-                type: 'line', 
-                data: { 
-                    labels: Array.from({length:60}, (_,i)=>i), 
-                    datasets: [{ 
-                        data: history, 
-                        borderColor: lineColor, 
-                        borderWidth: 3, 
-                        fill: false, 
-                        tension: 0.3, 
-                        pointRadius: history.map((_, i) => i === history.length - 1 ? 6 : 0),
-                        pointBackgroundColor: liveColor,
-                        pointBorderWidth: 0
-                    }] 
-                },
-                options: { 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: {display: false} }, 
-                    scales: { 
-                        y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25 } }, 
-                        x: { display: false } 
-                    } 
-                },
-                plugins: [{
-                    afterDraw: (chart) => {
-                        const ctx = chart.ctx;
-                        const meta = chart.getDatasetMeta(0);
-                        if (!meta.data.length) return;
-                        const lastPoint = meta.data[meta.data.length - 1];
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
-                        ctx.shadowBlur = vGlow;
-                        ctx.shadowColor = feverChart.data.datasets[0].pointBackgroundColor;
-                        ctx.fillStyle = feverChart.data.datasets[0].pointBackgroundColor;
-                        ctx.fill();
-                        ctx.restore();
-                    }
-                }]
+                type: 'line', data: { labels: Array.from({length:60}, (_,i)=>i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 3, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 6 : 0), pointBackgroundColor: liveColor, pointBorderWidth: 0 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25 } }, x: { display: false } } },
+                plugins: [{ afterDraw: (chart) => {
+                    const ctx = chart.ctx; const meta = chart.getDatasetMeta(0); if (!meta.data.length) return;
+                    const lastPoint = meta.data[meta.data.length - 1];
+                    ctx.save(); ctx.beginPath(); ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
+                    ctx.shadowBlur = vGlow; ctx.shadowColor = chart.data.datasets[0].pointBackgroundColor;
+                    ctx.fillStyle = chart.data.datasets[0].pointBackgroundColor; ctx.fill(); ctx.restore();
+                }}]
             });
         }
 
         async function sendVote(side) {
             const name = document.getElementById('userName').value || "Anonymous";
+            const currentPrice = parseInt(document.getElementById('price').innerText);
             localStorage.setItem('bettorName', name);
             const btns = document.getElementById('btn-container'), success = document.getElementById('vote-success');
             btns.style.display = "none"; success.style.display = "flex";
-            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
+            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&price=${currentPrice}`, { mode: 'no-cors' });
             setTimeout(() => { success.style.display = "none"; btns.style.display = "grid"; update(); }, 2000);
         }
 
         setInterval(() => {
-            vGlow += vGlowDir;
-            if (vGlow > 15 || vGlow < 4) vGlowDir *= -1;
+            vGlow += vGlowDir; if (vGlow > 15 || vGlow < 4) vGlowDir *= -1;
             if (feverChart) feverChart.update('none');
         }, 50);
-
         setInterval(update, 5000); update();
     </script>
 </body>
