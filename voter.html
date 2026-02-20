@@ -36,7 +36,7 @@
     </div>
     <div class="question-box"><h1 id="q-text">Loading...</h1></div>
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
-    <div class="input-group"><input type="text" id="userName" placeholder="YOUR NAME" maxlength="15"></div>
+    <div class="input-group"><input type="text" id="userName" placeholder="ENTER NAME" maxlength="15"></div>
     <div class="action-area">
         <div id="btn-container" class="btn-group">
             <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
@@ -47,8 +47,8 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
-        let vAlpha = 1, vDir = -0.04;
-        document.getElementById('userName').value = localStorage.getItem('bettorName') || '';
+        let vGlow = 5;
+        let vGlowDir = 0.3;
 
         async function update() {
             try {
@@ -74,16 +74,55 @@
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
+            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72';
+
             if (feverChart) { 
                 feverChart.data.datasets[0].data = history; 
                 feverChart.data.datasets[0].borderColor = lineColor;
                 feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 6 : 0);
+                feverChart.data.datasets[0].pointBackgroundColor = liveColor;
                 feverChart.update('none'); 
                 return; 
             }
             feverChart = new Chart(ctx, {
-                type: 'line', data: { labels: Array.from({length:60}, (_,i)=>i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 3, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 6 : 0), pointBackgroundColor: 'rgba(0, 255, 157, 1)', pointBorderWidth: 0 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25 } }, x: { display: false } } }
+                type: 'line', 
+                data: { 
+                    labels: Array.from({length:60}, (_,i)=>i), 
+                    datasets: [{ 
+                        data: history, 
+                        borderColor: lineColor, 
+                        borderWidth: 3, 
+                        fill: false, 
+                        tension: 0.3, 
+                        pointRadius: history.map((_, i) => i === history.length - 1 ? 6 : 0),
+                        pointBackgroundColor: liveColor,
+                        pointBorderWidth: 0
+                    }] 
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: {display: false} }, 
+                    scales: { 
+                        y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25 } }, 
+                        x: { display: false } 
+                    } 
+                },
+                plugins: [{
+                    afterDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const meta = chart.getDatasetMeta(0);
+                        if (!meta.data.length) return;
+                        const lastPoint = meta.data[meta.data.length - 1];
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
+                        ctx.shadowBlur = vGlow;
+                        ctx.shadowColor = feverChart.data.datasets[0].pointBackgroundColor;
+                        ctx.fillStyle = feverChart.data.datasets[0].pointBackgroundColor;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }]
             });
         }
 
@@ -97,14 +136,10 @@
         }
 
         setInterval(() => {
-            if (feverChart) {
-                vAlpha += vDir; if (vAlpha <= 0.3 || vAlpha >= 1) vDir *= -1;
-                const price = feverChart.data.datasets[0].data.slice(-1)[0];
-                const rgb = price > 49 ? '0, 255, 157' : '255, 123, 114';
-                feverChart.data.datasets[0].pointBackgroundColor = `rgba(${rgb}, ${vAlpha})`;
-                feverChart.update('none');
-            }
-        }, 60);
+            vGlow += vGlowDir;
+            if (vGlow > 15 || vGlow < 4) vGlowDir *= -1;
+            if (feverChart) feverChart.update('none');
+        }, 50);
 
         setInterval(update, 5000); update();
     </script>
