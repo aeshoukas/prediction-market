@@ -7,50 +7,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #0b0e11; --card: #161a1e; --green: #00c076; --red: #ff3b30; --border: #2b2f36; --text-secondary: #848e9c; }
-        
-        body { 
-            font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; 
-            margin: 0; padding: 10px; display: flex; flex-direction: column; 
-            height: 90vh; box-sizing: border-box; overflow: hidden;
-        }
-
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 90vh; box-sizing: border-box; overflow: hidden; }
         .gauge-section { flex-shrink: 0; height: 90px; display: flex; justify-content: center; align-items: flex-end; position: relative; }
         .gauge-wrapper { width: 160px; height: 80px; position: relative; }
         .price-overlay { position: absolute; bottom: 0; width: 100%; text-align: center; }
         .price-val { font-size: 32px; font-weight: 900; line-height: 1; }
-
         .question-box { flex-shrink: 0; padding: 8px 0; text-align: center; }
         h1 { font-size: 1.2rem; margin: 0; line-height: 1.2; font-weight: 800; }
-
         .chart-container { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 12px; min-height: 50px; }
-
         .input-group { flex-shrink: 0; margin-bottom: 10px; }
-        input { 
-            width: 100%; padding: 14px; border-radius: 10px; border: none; 
-            background: #ffffff; color: #444444; font-size: 16px; 
-            box-sizing: border-box; text-align: center; 
-            font-family: 'Courier New', Courier, monospace; font-weight: 900;
-        }
-
+        input { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #ffffff; color: #444444; font-size: 16px; box-sizing: border-box; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: 900; }
         .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; min-height: 85px; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 100%; }
         .btn { border: none; border-radius: 15px; padding: 22px 5px; font-weight: 900; font-size: 1.5rem; color: white; text-transform: uppercase; }
         .btn-yes { background: var(--green); box-shadow: 0 4px 0 #008453; }
         .btn-no { background: var(--red); box-shadow: 0 4px 0 #9f1239; }
         .btn:active { transform: translateY(2px); box-shadow: none; }
-        
-        /* Confirmation box matching the button height */
-        #vote-success { 
-            display: none; 
-            height: 82px; /* Matches visual height of buttons + shadow */
-            width: 100%; 
-            align-items: center; 
-            justify-content: center; 
-            background: rgba(0, 192, 118, 0.1); 
-            border-radius: 15px; 
-            border: 2px solid var(--green); 
-            box-sizing: border-box;
-        }
+        #vote-success { display: none; height: 82px; width: 100%; align-items: center; justify-content: center; background: rgba(0, 192, 118, 0.1); border-radius: 15px; border: 2px solid var(--green); box-sizing: border-box; }
         .success-text { color: var(--green); font-weight: 900; font-size: 1.4rem; letter-spacing: 1px; }
     </style>
 </head>
@@ -63,21 +36,18 @@
     </div>
     <div class="question-box"><h1 id="q-text">Loading...</h1></div>
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
-    <div class="input-group"><input type="text" id="userName" placeholder="ENTER NAME" maxlength="15"></div>
-    
+    <div class="input-group"><input type="text" id="userName" placeholder="YOUR NAME" maxlength="15"></div>
     <div class="action-area">
         <div id="btn-container" class="btn-group">
             <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
             <button class="btn btn-no" onclick="sendVote('no')">No</button>
         </div>
-        <div id="vote-success">
-            <div class="success-text">BET PLACED</div>
-        </div>
+        <div id="vote-success"><div class="success-text">BET PLACED</div></div>
     </div>
-
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
+        let vAlpha = 1, vDir = -0.04;
         document.getElementById('userName').value = localStorage.getItem('bettorName') || '';
 
         async function update() {
@@ -104,35 +74,38 @@
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
-            if (feverChart) { feverChart.data.datasets[0].data = history; feverChart.data.datasets[0].borderColor = lineColor; feverChart.update('none'); return; }
+            if (feverChart) { 
+                feverChart.data.datasets[0].data = history; 
+                feverChart.data.datasets[0].borderColor = lineColor;
+                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 6 : 0);
+                feverChart.update('none'); 
+                return; 
+            }
             feverChart = new Chart(ctx, {
-                type: 'line', data: { labels: Array.from({length:60}, (_,i)=>i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 4, fill: false, tension: 0.3, pointRadius: 0 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25, callback: (v)=>v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' } }, x: { display: false } } }
+                type: 'line', data: { labels: Array.from({length:60}, (_,i)=>i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 3, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 6 : 0), pointBackgroundColor: 'rgba(0, 255, 157, 1)', pointBorderWidth: 0 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25 } }, x: { display: false } } }
             });
         }
 
         async function sendVote(side) {
             const name = document.getElementById('userName').value || "Anonymous";
             localStorage.setItem('bettorName', name);
-            const btns = document.getElementById('btn-container');
-            const success = document.getElementById('vote-success');
-            
-            // UI Switch
-            btns.style.display = "none";
-            success.style.display = "flex";
-
-            // Submit data
-            try {
-                await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
-            } catch(e) { console.error("Vote failed", e); }
-            
-            // Revert UI after delay
-            setTimeout(() => { 
-                success.style.display = "none"; 
-                btns.style.display = "grid"; 
-                update(); 
-            }, 2000);
+            const btns = document.getElementById('btn-container'), success = document.getElementById('vote-success');
+            btns.style.display = "none"; success.style.display = "flex";
+            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
+            setTimeout(() => { success.style.display = "none"; btns.style.display = "grid"; update(); }, 2000);
         }
+
+        setInterval(() => {
+            if (feverChart) {
+                vAlpha += vDir; if (vAlpha <= 0.3 || vAlpha >= 1) vDir *= -1;
+                const price = feverChart.data.datasets[0].data.slice(-1)[0];
+                const rgb = price > 49 ? '0, 255, 157' : '255, 123, 114';
+                feverChart.data.datasets[0].pointBackgroundColor = `rgba(${rgb}, ${vAlpha})`;
+                feverChart.update('none');
+            }
+        }, 60);
+
         setInterval(update, 5000); update();
     </script>
 </body>
