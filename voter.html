@@ -32,14 +32,26 @@
             font-family: 'Courier New', Courier, monospace; font-weight: 900;
         }
 
-        .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; min-height: 85px; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 100%; }
         .btn { border: none; border-radius: 15px; padding: 22px 5px; font-weight: 900; font-size: 1.5rem; color: white; text-transform: uppercase; }
         .btn-yes { background: var(--green); box-shadow: 0 4px 0 #008453; }
         .btn-no { background: var(--red); box-shadow: 0 4px 0 #9f1239; }
         .btn:active { transform: translateY(2px); box-shadow: none; }
         
-        #vote-success { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); border-radius: 15px; border: 2px solid var(--green); z-index: 10; }
+        /* Confirmation box matching the button height */
+        #vote-success { 
+            display: none; 
+            height: 82px; /* Matches visual height of buttons + shadow */
+            width: 100%; 
+            align-items: center; 
+            justify-content: center; 
+            background: rgba(0, 192, 118, 0.1); 
+            border-radius: 15px; 
+            border: 2px solid var(--green); 
+            box-sizing: border-box;
+        }
+        .success-text { color: var(--green); font-weight: 900; font-size: 1.4rem; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -51,14 +63,18 @@
     </div>
     <div class="question-box"><h1 id="q-text">Loading...</h1></div>
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
-    <div class="input-group"><input type="text" id="userName" placeholder="YOUR NAME" maxlength="15"></div>
+    <div class="input-group"><input type="text" id="userName" placeholder="ENTER NAME" maxlength="15"></div>
+    
     <div class="action-area">
         <div id="btn-container" class="btn-group">
             <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
             <button class="btn btn-no" onclick="sendVote('no')">No</button>
         </div>
-        <div id="vote-success"><div style="font-size: 30px">✅</div><div style="color:var(--green); font-weight:800">BET PLACED</div></div>
+        <div id="vote-success">
+            <div class="success-text">BET PLACED</div>
+        </div>
     </div>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
@@ -70,9 +86,8 @@
                 const data = await res.json();
                 document.getElementById('q-text').innerText = data.question;
                 const price = data.percent || 50;
-                const pEl = document.getElementById('price');
-                pEl.innerText = price + "¢";
-                pEl.style.color = price > 49 ? '#00c076' : '#ff3b30';
+                document.getElementById('price').innerText = price + "¢";
+                document.getElementById('price').style.color = price > 49 ? '#00c076' : '#ff3b30';
                 drawGauge(price);
                 drawFever(data.history || []);
             } catch(e) { console.error(e); }
@@ -101,10 +116,22 @@
             localStorage.setItem('bettorName', name);
             const btns = document.getElementById('btn-container');
             const success = document.getElementById('vote-success');
-            btns.style.opacity = "0.3"; btns.style.pointerEvents = "none";
-            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
-            btns.style.display = "none"; success.style.display = "flex";
-            setTimeout(() => { success.style.display = "none"; btns.style.display = "grid"; btns.style.opacity = "1"; btns.style.pointerEvents = "auto"; update(); }, 2500);
+            
+            // UI Switch
+            btns.style.display = "none";
+            success.style.display = "flex";
+
+            // Submit data
+            try {
+                await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
+            } catch(e) { console.error("Vote failed", e); }
+            
+            // Revert UI after delay
+            setTimeout(() => { 
+                success.style.display = "none"; 
+                btns.style.display = "grid"; 
+                update(); 
+            }, 2000);
         }
         setInterval(update, 5000); update();
     </script>
