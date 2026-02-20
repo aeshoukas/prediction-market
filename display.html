@@ -47,9 +47,7 @@
             </div>
             <div id="leaderboard" class="leader-box">Current leader: ...</div>
         </div>
-
         <div class="question-section"><h1 id="q-text" class="question-text">Connecting...</h1></div>
-
         <div class="qr-section">
             <div class="qr-container">
                 <div class="qr-callout">BET NOW</div>
@@ -57,12 +55,13 @@
             </div>
         </div>
     </div>
-
     <div class="chart-frame"><canvas id="feverLineChart"></canvas></div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
+        let alpha = 1;
+        let alphaDir = -0.04;
 
         async function update() {
             try {
@@ -94,20 +93,15 @@
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
-            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72'; 
-            
             if (feverChart) {
                 feverChart.data.datasets[0].data = history;
                 feverChart.data.datasets[0].borderColor = lineColor;
-                feverChart.data.datasets[0].pointBackgroundColor = liveColor;
-                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 12 : 0);
                 feverChart.update('none');
                 return;
             }
-
             feverChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: Array.from({length: 60}, (_, i) => i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 6, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 12 : 0), pointBackgroundColor: liveColor, pointBorderWidth: 0 }] },
+                data: { labels: Array.from({length: 60}, (_, i) => i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 6, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 12 : 0), pointBackgroundColor: 'rgba(0, 255, 157, 1)', pointBorderWidth: 0 }] },
                 options: {
                     maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: {display: false} },
                     scales: {
@@ -117,6 +111,18 @@
                 }
             });
         }
+
+        setInterval(() => {
+            if (feverChart) {
+                alpha += alphaDir;
+                if (alpha <= 0.2 || alpha >= 1) alphaDir *= -1;
+                const currentPrice = feverChart.data.datasets[0].data.slice(-1)[0];
+                const rgb = currentPrice > 49 ? '0, 255, 157' : '255, 123, 114';
+                feverChart.data.datasets[0].pointBackgroundColor = `rgba(${rgb}, ${alpha})`;
+                feverChart.update('none');
+            }
+        }, 50);
+
         setInterval(update, 3000); update();
     </script>
 </body>
