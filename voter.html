@@ -15,8 +15,10 @@
         .question-box { flex-shrink: 0; padding: 8px 0; text-align: center; }
         h1 { font-size: 1.2rem; margin: 0; line-height: 1.2; font-weight: 800; }
         .chart-container { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 12px; min-height: 50px; }
-        .input-group { flex-shrink: 0; margin-bottom: 10px; }
-        input { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #ffffff; color: #444444; font-size: 16px; box-sizing: border-box; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: 900; }
+        
+        /* New Identity Box */
+        .identity-box { flex-shrink: 0; margin-bottom: 10px; padding: 12px; background: #ffffff; color: #444444; border-radius: 10px; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: 900; font-size: 18px; }
+        
         .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; min-height: 85px; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 100%; }
         .btn { border: none; border-radius: 15px; padding: 22px 5px; font-weight: 900; font-size: 1.5rem; color: white; text-transform: uppercase; }
@@ -36,7 +38,9 @@
     </div>
     <div class="question-box"><h1 id="q-text">Loading...</h1></div>
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
-    <div class="input-group"><input type="text" id="userName" placeholder="ENTER NAME" maxlength="15"></div>
+    
+    <div class="identity-box" id="id-display">ASSIGNING NAME...</div>
+
     <div class="action-area">
         <div id="btn-container" class="btn-group">
             <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
@@ -44,10 +48,29 @@
         </div>
         <div id="vote-success"><div class="success-text">BET PLACED</div></div>
     </div>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzVwZ81cntz2O7X0mh2EqNtFx7X57XXjyWllAVLtjIGY2IHuTHz8n441TaLJDcfZKng/exec";
         let gaugeChart, feverChart;
-        let vGlow = 5; let vGlowDir = 0.3;
+        let vGlow = 5, vGlowDir = 0.3;
+        let myAssignedName = sessionStorage.getItem('assignedName');
+
+        // Fetch name if we don't have one this session
+        async function assignName() {
+            if (myAssignedName) {
+                document.getElementById('id-display').innerText = "ID: " + myAssignedName;
+                return;
+            }
+            try {
+                const response = await fetch(`${API_URL}?action=getName`);
+                const name = await response.text();
+                myAssignedName = name;
+                sessionStorage.setItem('assignedName', name);
+                document.getElementById('id-display').innerText = "ID: " + name;
+            } catch (e) {
+                document.getElementById('id-display').innerText = "ID: GUEST";
+            }
+        }
 
         async function update() {
             try {
@@ -95,12 +118,13 @@
         }
 
         async function sendVote(side) {
-            const name = document.getElementById('userName').value || "Anonymous";
             const currentPrice = parseInt(document.getElementById('price').innerText);
-            localStorage.setItem('bettorName', name);
             const btns = document.getElementById('btn-container'), success = document.getElementById('vote-success');
             btns.style.display = "none"; success.style.display = "flex";
-            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&price=${currentPrice}`, { mode: 'no-cors' });
+            
+            // Send the assigned name
+            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(myAssignedName)}&price=${currentPrice}`, { mode: 'no-cors' });
+            
             setTimeout(() => { success.style.display = "none"; btns.style.display = "grid"; update(); }, 2000);
         }
 
@@ -108,6 +132,8 @@
             vGlow += vGlowDir; if (vGlow > 15 || vGlow < 4) vGlowDir *= -1;
             if (feverChart) feverChart.update('none');
         }, 50);
+
+        assignName();
         setInterval(update, 5000); update();
     </script>
 </body>
