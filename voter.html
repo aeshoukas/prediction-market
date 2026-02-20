@@ -22,19 +22,19 @@
         .question-box { flex-shrink: 0; padding: 8px 0; text-align: center; }
         h1 { font-size: 1.2rem; margin: 0; line-height: 1.2; font-weight: 800; }
 
-        .chart-container { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 10px; min-height: 50px; }
+        .chart-container { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 12px; min-height: 50px; }
 
-        .input-group { flex-shrink: 0; margin-bottom: 8px; }
+        .input-group { flex-shrink: 0; margin-bottom: 10px; }
         input { 
-            width: 100%; padding: 12px; border-radius: 10px; border: none; 
-            background: #ffffff; color: #333333; font-size: 16px; 
+            width: 100%; padding: 14px; border-radius: 10px; border: none; 
+            background: #ffffff; color: #444444; font-size: 16px; 
             box-sizing: border-box; text-align: center; 
-            font-family: 'Courier New', Courier, monospace; font-weight: bold;
+            font-family: 'Courier New', Courier, monospace; font-weight: 900;
         }
 
         .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { border: none; border-radius: 15px; padding: 20px 5px; font-weight: 900; font-size: 1.4rem; color: white; text-transform: uppercase; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn { border: none; border-radius: 15px; padding: 22px 5px; font-weight: 900; font-size: 1.5rem; color: white; text-transform: uppercase; }
         .btn-yes { background: var(--green); box-shadow: 0 4px 0 #008453; }
         .btn-no { background: var(--red); box-shadow: 0 4px 0 #9f1239; }
         .btn:active { transform: translateY(2px); box-shadow: none; }
@@ -51,7 +51,7 @@
     </div>
     <div class="question-box"><h1 id="q-text">Loading...</h1></div>
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
-    <div class="input-group"><input type="text" id="userName" placeholder="ENTER NAME" maxlength="15"></div>
+    <div class="input-group"><input type="text" id="userName" placeholder="YOUR NAME" maxlength="15"></div>
     <div class="action-area">
         <div id="btn-container" class="btn-group">
             <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
@@ -68,14 +68,11 @@
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
-                if (data.secondsLeft <= 0) {
-                    document.getElementById('q-text').innerText = "MARKET CLOSED";
-                    document.getElementById('btn-container').style.opacity = "0.3";
-                    document.getElementById('btn-container').style.pointerEvents = "none";
-                } else { document.getElementById('q-text').innerText = data.question; }
+                document.getElementById('q-text').innerText = data.question;
                 const price = data.percent || 50;
-                document.getElementById('price').innerText = price + "¢";
-                document.getElementById('price').style.color = price > 49 ? '#00c076' : '#ff3b30';
+                const pEl = document.getElementById('price');
+                pEl.innerText = price + "¢";
+                pEl.style.color = price > 49 ? '#00c076' : '#ff3b30';
                 drawGauge(price);
                 drawFever(data.history || []);
             } catch(e) { console.error(e); }
