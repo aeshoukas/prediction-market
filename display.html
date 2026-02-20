@@ -6,50 +6,38 @@
     <style>
         :root {
             --bg: #0b0e11; --card: #161a1e; --green: #00c076;
-            --blue: #0066FF; --border: #2b2f36; --text-secondary: #848e9c;
+            --red: #ff3b30; --blue: #0066FF; --border: #2b2f36; --text-secondary: #848e9c;
         }
         body { 
             background: var(--bg); color: #fff; font-family: 'Inter', -apple-system, sans-serif; 
-            margin: 0; padding: 30px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            margin: 0; padding: 20px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
             box-sizing: border-box;
         }
         .header-container {
-            display: grid; grid-template-columns: 300px 1fr 300px;
-            gap: 40px; align-items: center; height: 300px; margin-bottom: 20px;
+            display: grid; grid-template-columns: 320px 1fr 300px;
+            gap: 30px; align-items: center; height: 280px; margin-bottom: 20px;
         }
-        .gauge-section { width: 300px; height: 300px; display: flex; flex-direction: column; justify-content: center; position: relative; }
-        .gauge-wrapper { position: relative; width: 260px; height: 130px; margin: 0 auto; }
+        .gauge-section { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .gauge-wrapper { position: relative; width: 260px; height: 130px; }
         .price-overlay { position: absolute; bottom: 2px; width: 100%; text-align: center; }
-        .price-val { font-size: 68px; font-weight: 900; color: var(--green); line-height: 0.8; letter-spacing: -2px; }
-        .price-label { font-size: 13px; color: var(--text-secondary); font-weight: 800; text-transform: uppercase; }
+        .price-val { font-size: 64px; font-weight: 900; color: var(--green); line-height: 0.8; }
         
-        .question-section { text-align: left; }
-        .question-text { font-size: 3.5vw; font-weight: 700; line-height: 1.2; margin: 0; color: #ffffff; }
+        .leader-box { 
+            margin-top: 15px; font-size: 16px; font-weight: 700; color: #fff;
+            background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 8px;
+            border: 1px solid var(--border); width: fit-content;
+        }
 
-        /* QR Code with Integrated Label */
-        .qr-section { width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
+        .question-text { font-size: 3vw; font-weight: 700; line-height: 1.2; margin: 0; }
+
         .qr-container { 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 12px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #fff; padding: 10px; border-radius: 12px; 
+            display: flex; flex-direction: column; align-items: center;
         }
-        .qr-callout { 
-            color: #000; 
-            font-weight: 900; 
-            font-size: 24px; 
-            margin-bottom: 5px;
-            letter-spacing: 1px;
-        }
-        .qr-image { width: 220px; height: 220px; display: block; }
+        .qr-callout { color: #000; font-weight: 900; font-size: 20px; margin-bottom: 5px; }
+        .qr-image { width: 180px; height: 180px; }
 
-        .chart-frame { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; position: relative; }
-        .live-indicator { position: absolute; top: 20px; right: 30px; color: var(--green); font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-        .dot { height: 8px; width: 8px; background-color: var(--green); border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .chart-frame { flex-grow: 1; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 20px; position: relative; }
     </style>
 </head>
 <body>
@@ -57,8 +45,11 @@
         <div class="gauge-section">
             <div class="gauge-wrapper">
                 <canvas id="gaugeChart"></canvas>
-                <div class="price-overlay"><div id="price" class="price-val">--¢</div><div class="price-label">Chance of YES</div></div>
+                <div class="price-overlay">
+                    <div id="price" class="price-val">--¢</div>
+                </div>
             </div>
+            <div id="leaderboard" class="leader-box">Current leader: Calculating...</div>
         </div>
 
         <div class="question-section"><h1 id="q-text" class="question-text">Connecting...</h1></div>
@@ -66,13 +57,12 @@
         <div class="qr-section">
             <div class="qr-container">
                 <div class="qr-callout">BET NOW</div>
-                <img src="vote_qr.jpg" class="qr-image" alt="QR Code">
+                <img src="vote_qr.jpg" class="qr-image">
             </div>
         </div>
     </div>
 
     <div class="chart-frame">
-        <div class="live-indicator"><span class="dot"></span> LIVE SENTIMENT</div>
         <canvas id="feverLineChart"></canvas>
     </div>
 
@@ -82,48 +72,86 @@
 
         async function update() {
             try {
-                const res = await fetch(API_URL); let data = await res.json(); if (Array.isArray(data)) data = data[0];
+                const res = await fetch(API_URL);
+                let data = await res.json();
+                if (Array.isArray(data)) data = data[0];
+
                 document.getElementById('q-text').innerText = data.question;
-                document.getElementById('price').innerText = (data.percent || 50) + "¢";
-                drawGauge(data.percent || 50); drawFever(data.history || [50]);
+                const price = data.percent || 50;
+                document.getElementById('price').innerText = price + "¢";
+                document.getElementById('price').style.color = price > 49 ? '#00c076' : '#ff3b30';
+                
+                // Winning bettor logic: simple display from data
+                const winner = data.lastBettor || "Anonymous";
+                document.getElementById('leaderboard').innerText = `Current leader: ${winner}, $100`;
+
+                drawGauge(price);
+                drawFever(data.history || []);
             } catch(e) { console.error(e); }
         }
 
         function drawGauge(val) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
-            if (gaugeChart) { gaugeChart.data.datasets[0].data = [val, 100 - val]; gaugeChart.update(); return; }
+            if (gaugeChart) { gaugeChart.data.datasets[0].data = [val, 100-val]; gaugeChart.update(); return; }
             gaugeChart = new Chart(ctx, {
-                type: 'doughnut', data: { datasets: [{ data: [val, 100 - val], backgroundColor: ['#00c076', '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 20 }] },
-                options: { cutout: '90%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                type: 'doughnut',
+                data: { datasets: [{ data: [val, 100-val], backgroundColor: [val > 49 ? '#00c076' : '#ff3b30', '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 20 }] },
+                options: { cutout: '90%', maintainAspectRatio: false, plugins: { legend: {display: false}, tooltip: {enabled: false} } }
             });
         }
 
         function drawFever(history) {
             const ctx = document.getElementById('feverLineChart').getContext('2d');
-            if (feverChart) { feverChart.data.labels = history.map((_, i) => i); feverChart.data.datasets[0].data = history; feverChart.update('none'); return; }
+            const currentPrice = history[history.length - 1] || 50;
+            const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
+
+            // Create x-axis labels 0 to 59
+            const labels = Array.from({length: 60}, (_, i) => i);
+            
+            if (feverChart) {
+                feverChart.data.datasets[0].data = history;
+                feverChart.data.datasets[0].borderColor = lineColor;
+                feverChart.data.datasets[0].pointBackgroundColor = lineColor;
+                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 8 : 0);
+                feverChart.update();
+                return;
+            }
+
             feverChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: history.map((_, i) => i), datasets: [{ data: history, borderColor: '#0066FF', borderWidth: 5, fill: true, backgroundColor: 'rgba(0, 102, 255, 0.1)', tension: 0.4, pointRadius: 0 }] },
-                options: { 
-                    maintainAspectRatio: false, plugins: { legend: { display: false } },
-                    scales: { 
-                        y: { 
-                            min: 0, max: 100, 
-                            grid: { color: '#2b2f36' }, 
-                            ticks: { 
-                                color: '#ffffff', 
-                                font: { weight: '900', size: 24 }, 
-                                stepSize: 25, 
-                                padding: 10, 
-                                callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' 
-                            } 
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: history,
+                        borderColor: lineColor,
+                        borderWidth: 6,
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: history.map((_, i) => i === history.length - 1 ? 8 : 0),
+                        pointBackgroundColor: lineColor,
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: { legend: {display: false} },
+                    scales: {
+                        x: {
+                            grid: { color: '#2b2f36' },
+                            ticks: { color: '#848e9c', font: {weight: 'bold'}, callback: (v) => v % 10 === 0 ? ':' + (v < 10 ? '0'+v : v) : '' }
                         },
-                        x: { display: false } 
+                        y: {
+                            min: 0, max: 100,
+                            grid: { color: '#2b2f36' },
+                            ticks: { color: '#ffffff', font: {weight: '900', size: 20}, stepSize: 25, callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' }
+                        }
                     }
                 }
             });
         }
-        setInterval(update, 3000); update();
+
+        setInterval(update, 3000);
+        update();
     </script>
 </body>
 </html>
