@@ -6,8 +6,7 @@
     <style>
         :root {
             --bg: #0b0e11; --card: #161a1e; --green: #00c076;
-            --red: #ff3b30; --blue: #0066FF; --border: #2b2f36; --text-secondary: #848e9c;
-            --live-green: #00ff9d; /* Brighter pulsing green */
+            --red: #ff3b30; --border: #2b2f36; --text-secondary: #848e9c;
         }
         body { 
             background: var(--bg); color: #fff; font-family: 'Inter', -apple-system, sans-serif; 
@@ -50,9 +49,7 @@
             </div>
             <div id="leaderboard" class="leader-box">Current leader: Calculating...</div>
         </div>
-
         <div class="question-section"><h1 id="q-text" class="question-text">Connecting...</h1></div>
-
         <div class="qr-section">
             <div id="timer">00:00</div>
             <div class="qr-container">
@@ -61,14 +58,11 @@
             </div>
         </div>
     </div>
-
     <div class="chart-frame"><canvas id="feverLineChart"></canvas></div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
-        let pulseSize = 10;
-        let pulseDir = 1;
 
         function formatTime(seconds) {
             if (seconds <= 0) return "CLOSED";
@@ -85,27 +79,14 @@
                 const pEl = document.getElementById('price');
                 pEl.innerText = price + "¢";
                 pEl.style.color = price > 49 ? '#00c076' : '#ff3b30';
-                
                 document.getElementById('leaderboard').innerText = `Current leader: ${data.lastBettor}, $100`;
                 const timerEl = document.getElementById('timer');
                 timerEl.innerText = formatTime(data.secondsLeft);
                 timerEl.style.color = (data.secondsLeft < 60 && data.secondsLeft > 0) ? '#ff3b30' : '#848e9c';
-
                 drawGauge(price);
                 drawFever(data.history || []);
             } catch(e) { console.error(e); }
         }
-
-        // Logic for the pulsing animation effect
-        setInterval(() => {
-            if (feverChart) {
-                pulseSize += (0.5 * pulseDir);
-                if (pulseSize > 14 || pulseSize < 9) pulseDir *= -1;
-                const history = feverChart.data.datasets[0].data;
-                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? pulseSize : 0);
-                feverChart.update('none'); // Update without full animation frame for smoothness
-            }
-        }, 50);
 
         function drawGauge(val) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
@@ -118,19 +99,20 @@
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
-            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72'; // Brighter versions for pulsing dot
+            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72'; // Neon high-contrast versions
             
             if (feverChart) {
                 feverChart.data.datasets[0].data = history;
                 feverChart.data.datasets[0].borderColor = lineColor;
                 feverChart.data.datasets[0].pointBackgroundColor = liveColor;
-                feverChart.update();
+                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 12 : 0);
+                feverChart.update('none');
                 return;
             }
 
             feverChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: Array.from({length: 60}, (_, i) => i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 6, fill: false, tension: 0.3, pointRadius: 0, pointBackgroundColor: liveColor, pointBorderWidth: 0 }] },
+                data: { labels: Array.from({length: 60}, (_, i) => i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 6, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 12 : 0), pointBackgroundColor: liveColor, pointBorderWidth: 0 }] },
                 options: {
                     maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: {display: false} },
                     scales: {
@@ -140,7 +122,6 @@
                 }
             });
         }
-
         setInterval(update, 3000); update();
     </script>
 </body>
