@@ -7,6 +7,7 @@
         :root {
             --bg: #0b0e11; --card: #161a1e; --green: #00c076;
             --red: #ff3b30; --blue: #0066FF; --border: #2b2f36; --text-secondary: #848e9c;
+            --live-green: #00ff9d; /* Brighter pulsing green */
         }
         body { 
             background: var(--bg); color: #fff; font-family: 'Inter', -apple-system, sans-serif; 
@@ -33,10 +34,7 @@
         .qr-section { display: flex; flex-direction: column; align-items: center; }
         #timer { font-size: 44px; font-weight: 900; color: var(--text-secondary); margin-bottom: 10px; font-family: monospace; }
         
-        .qr-container { 
-            background: #fff; padding: 10px; border-radius: 12px; 
-            display: flex; flex-direction: column; align-items: center;
-        }
+        .qr-container { background: #fff; padding: 10px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; }
         .qr-callout { color: #000; font-weight: 900; font-size: 20px; margin-bottom: 5px; }
         .qr-image { width: 160px; height: 160px; }
 
@@ -48,9 +46,7 @@
         <div class="gauge-section">
             <div class="gauge-wrapper">
                 <canvas id="gaugeChart"></canvas>
-                <div class="price-overlay">
-                    <div id="price" class="price-val">--¢</div>
-                </div>
+                <div class="price-overlay"><div id="price" class="price-val">--¢</div></div>
             </div>
             <div id="leaderboard" class="leader-box">Current leader: Calculating...</div>
         </div>
@@ -66,18 +62,17 @@
         </div>
     </div>
 
-    <div class="chart-frame">
-        <canvas id="feverLineChart"></canvas>
-    </div>
+    <div class="chart-frame"><canvas id="feverLineChart"></canvas></div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
+        let pulseSize = 10;
+        let pulseDir = 1;
 
         function formatTime(seconds) {
             if (seconds <= 0) return "CLOSED";
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
+            const m = Math.floor(seconds / 60); const s = seconds % 60;
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
@@ -85,14 +80,12 @@
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
-
                 document.getElementById('q-text').innerText = data.question;
                 const price = data.percent || 50;
                 const pEl = document.getElementById('price');
                 pEl.innerText = price + "¢";
                 pEl.style.color = price > 49 ? '#00c076' : '#ff3b30';
                 
-                // Leaderboard & Timer
                 document.getElementById('leaderboard').innerText = `Current leader: ${data.lastBettor}, $100`;
                 const timerEl = document.getElementById('timer');
                 timerEl.innerText = formatTime(data.secondsLeft);
@@ -103,71 +96,52 @@
             } catch(e) { console.error(e); }
         }
 
+        // Logic for the pulsing animation effect
+        setInterval(() => {
+            if (feverChart) {
+                pulseSize += (0.5 * pulseDir);
+                if (pulseSize > 14 || pulseSize < 9) pulseDir *= -1;
+                const history = feverChart.data.datasets[0].data;
+                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? pulseSize : 0);
+                feverChart.update('none'); // Update without full animation frame for smoothness
+            }
+        }, 50);
+
         function drawGauge(val) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
             const color = val > 49 ? '#00c076' : '#ff3b30';
-            if (gaugeChart) { 
-                gaugeChart.data.datasets[0].data = [val, 100-val]; 
-                gaugeChart.data.datasets[0].backgroundColor[0] = color;
-                gaugeChart.update(); return; 
-            }
-            gaugeChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { datasets: [{ data: [val, 100-val], backgroundColor: [color, '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 20 }] },
-                options: { cutout: '90%', maintainAspectRatio: false, plugins: { legend: {display: false}, tooltip: {enabled: false} } }
-            });
+            if (gaugeChart) { gaugeChart.data.datasets[0].data = [val, 100-val]; gaugeChart.data.datasets[0].backgroundColor[0] = color; gaugeChart.update(); return; }
+            gaugeChart = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [val, 100-val], backgroundColor: [color, '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 20 }] }, options: { cutout: '90%', maintainAspectRatio: false, plugins: { legend: {display: false}, tooltip: {enabled: false} } } });
         }
 
         function drawFever(history) {
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
-            const labels = Array.from({length: 60}, (_, i) => i);
+            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72'; // Brighter versions for pulsing dot
             
             if (feverChart) {
                 feverChart.data.datasets[0].data = history;
                 feverChart.data.datasets[0].borderColor = lineColor;
-                feverChart.data.datasets[0].pointBackgroundColor = lineColor;
-                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 10 : 0);
+                feverChart.data.datasets[0].pointBackgroundColor = liveColor;
                 feverChart.update();
                 return;
             }
 
             feverChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: history,
-                        borderColor: lineColor,
-                        borderWidth: 6,
-                        fill: false,
-                        tension: 0.3,
-                        pointRadius: history.map((_, i) => i === history.length - 1 ? 10 : 0),
-                        pointBackgroundColor: lineColor,
-                    }]
-                },
+                data: { labels: Array.from({length: 60}, (_, i) => i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 6, fill: false, tension: 0.3, pointRadius: 0, pointBackgroundColor: liveColor, pointBorderWidth: 0 }] },
                 options: {
-                    maintainAspectRatio: false,
-                    animation: { duration: 0 },
-                    plugins: { legend: {display: false} },
+                    maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: {display: false} },
                     scales: {
-                        x: {
-                            grid: { color: '#2b2f36' },
-                            ticks: { color: '#848e9c', font: {weight: 'bold', size: 14}, callback: (v) => v % 10 === 0 ? ':' + (v < 10 ? '0'+v : v) : '' }
-                        },
-                        y: {
-                            min: 0, max: 100,
-                            grid: { color: '#2b2f36' },
-                            ticks: { color: '#ffffff', font: {weight: '900', size: 24}, stepSize: 25, callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' }
-                        }
+                        x: { grid: { color: '#2b2f36' }, ticks: { color: '#848e9c', font: {weight: 'bold', size: 14}, callback: (v) => v % 10 === 0 ? ':' + (v < 10 ? '0'+v : v) : '' } },
+                        y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {weight: '900', size: 24}, stepSize: 25, callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' } }
                     }
                 }
             });
         }
 
-        setInterval(update, 3000);
-        update();
+        setInterval(update, 3000); update();
     </script>
 </body>
 </html>
