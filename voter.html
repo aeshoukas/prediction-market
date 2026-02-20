@@ -49,15 +49,9 @@
             <div class="price-overlay"><div id="price" class="price-val">--¢</div></div>
         </div>
     </div>
-
     <div class="question-box"><h1 id="q-text">Loading...</h1></div>
-
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
-
-    <div class="input-group">
-        <input type="text" id="userName" placeholder="ENTER NAME" maxlength="15">
-    </div>
-
+    <div class="input-group"><input type="text" id="userName" placeholder="ENTER NAME" maxlength="15"></div>
     <div class="action-area">
         <div id="btn-container" class="btn-group">
             <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
@@ -65,30 +59,23 @@
         </div>
         <div id="vote-success"><div style="font-size: 30px">✅</div><div style="color:var(--green); font-weight:800">BET PLACED</div></div>
     </div>
-
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
-
         document.getElementById('userName').value = localStorage.getItem('bettorName') || '';
 
         async function update() {
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
-                const qEl = document.getElementById('q-text');
-                const btns = document.getElementById('btn-container');
-
                 if (data.secondsLeft <= 0) {
-                    qEl.innerText = "MARKET CLOSED";
-                    btns.style.opacity = "0.3";
-                    btns.style.pointerEvents = "none";
-                } else { qEl.innerText = data.question; }
-
+                    document.getElementById('q-text').innerText = "MARKET CLOSED";
+                    document.getElementById('btn-container').style.opacity = "0.3";
+                    document.getElementById('btn-container').style.pointerEvents = "none";
+                } else { document.getElementById('q-text').innerText = data.question; }
                 const price = data.percent || 50;
-                const pEl = document.getElementById('price');
-                pEl.innerText = price + "¢";
-                pEl.style.color = price > 49 ? '#00c076' : '#ff3b30';
+                document.getElementById('price').innerText = price + "¢";
+                document.getElementById('price').style.color = price > 49 ? '#00c076' : '#ff3b30';
                 drawGauge(price);
                 drawFever(data.history || []);
             } catch(e) { console.error(e); }
@@ -118,11 +105,10 @@
             const btns = document.getElementById('btn-container');
             const success = document.getElementById('vote-success');
             btns.style.opacity = "0.3"; btns.style.pointerEvents = "none";
-            await fetch(`${API_URL}?qIndex=0&vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
+            await fetch(`${API_URL}?vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
             btns.style.display = "none"; success.style.display = "flex";
             setTimeout(() => { success.style.display = "none"; btns.style.display = "grid"; btns.style.opacity = "1"; btns.style.pointerEvents = "auto"; update(); }, 2500);
         }
-
         setInterval(update, 5000); update();
     </script>
 </body>
