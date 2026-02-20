@@ -11,8 +11,7 @@
         body { 
             font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; 
             margin: 0; padding: 10px; display: flex; flex-direction: column; 
-            height: 90vh; /* Clears Safari mobile UI */
-            box-sizing: border-box; overflow: hidden;
+            height: 90vh; box-sizing: border-box; overflow: hidden;
         }
 
         .gauge-section { flex-shrink: 0; height: 90px; display: flex; justify-content: center; align-items: flex-end; position: relative; }
@@ -27,13 +26,15 @@
 
         .input-group { flex-shrink: 0; margin-bottom: 8px; }
         input { 
-            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); 
-            background: #000; color: #fff; font-size: 16px; box-sizing: border-box; text-align: center; font-weight: bold;
+            width: 100%; padding: 12px; border-radius: 10px; border: none; 
+            background: #ffffff; color: #333333; font-size: 16px; 
+            box-sizing: border-box; text-align: center; 
+            font-family: 'Courier New', Courier, monospace; font-weight: bold;
         }
 
         .action-area { flex-shrink: 0; padding-bottom: 15px; position: relative; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { border: none; border-radius: 15px; padding: 20px 5px; font-weight: 900; font-size: 1.2rem; color: white; text-transform: uppercase; }
+        .btn { border: none; border-radius: 15px; padding: 20px 5px; font-weight: 900; font-size: 1.4rem; color: white; text-transform: uppercase; }
         .btn-yes { background: var(--green); box-shadow: 0 4px 0 #008453; }
         .btn-no { background: var(--red); box-shadow: 0 4px 0 #9f1239; }
         .btn:active { transform: translateY(2px); box-shadow: none; }
@@ -54,13 +55,13 @@
     <div class="chart-container"><canvas id="feverLineChart"></canvas></div>
 
     <div class="input-group">
-        <input type="text" id="userName" placeholder="ENTER YOUR NAME" maxlength="15">
+        <input type="text" id="userName" placeholder="ENTER NAME" maxlength="15">
     </div>
 
     <div class="action-area">
         <div id="btn-container" class="btn-group">
-            <button class="btn btn-yes" onclick="sendVote('yes')">Yes $100</button>
-            <button class="btn btn-no" onclick="sendVote('no')">No $100</button>
+            <button class="btn btn-yes" onclick="sendVote('yes')">Yes</button>
+            <button class="btn btn-no" onclick="sendVote('no')">No</button>
         </div>
         <div id="vote-success"><div style="font-size: 30px">✅</div><div style="color:var(--green); font-weight:800">BET PLACED</div></div>
     </div>
@@ -75,7 +76,6 @@
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
-                
                 const qEl = document.getElementById('q-text');
                 const btns = document.getElementById('btn-container');
 
@@ -83,15 +83,12 @@
                     qEl.innerText = "MARKET CLOSED";
                     btns.style.opacity = "0.3";
                     btns.style.pointerEvents = "none";
-                } else {
-                    qEl.innerText = data.question;
-                }
+                } else { qEl.innerText = data.question; }
 
                 const price = data.percent || 50;
                 const pEl = document.getElementById('price');
                 pEl.innerText = price + "¢";
                 pEl.style.color = price > 49 ? '#00c076' : '#ff3b30';
-
                 drawGauge(price);
                 drawFever(data.history || []);
             } catch(e) { console.error(e); }
@@ -100,11 +97,7 @@
         function drawGauge(val) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
             const color = val > 49 ? '#00c076' : '#ff3b30';
-            if (gaugeChart) { 
-                gaugeChart.data.datasets[0].data = [val, 100-val]; 
-                gaugeChart.data.datasets[0].backgroundColor[0] = color;
-                gaugeChart.update(); return; 
-            }
+            if (gaugeChart) { gaugeChart.data.datasets[0].data = [val, 100-val]; gaugeChart.data.datasets[0].backgroundColor[0] = color; gaugeChart.update(); return; }
             gaugeChart = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [val, 100-val], backgroundColor: [color, '#2b2f36'], borderWidth: 0, circumference: 180, rotation: 270, borderRadius: 10 }] }, options: { cutout: '90%', maintainAspectRatio: false, plugins: { legend: {display: false}, tooltip: {enabled: false} } } });
         }
 
@@ -112,30 +105,20 @@
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
-            if (feverChart) { 
-                feverChart.data.datasets[0].data = history; 
-                feverChart.data.datasets[0].borderColor = lineColor;
-                feverChart.update('none'); return; 
-            }
+            if (feverChart) { feverChart.data.datasets[0].data = history; feverChart.data.datasets[0].borderColor = lineColor; feverChart.update('none'); return; }
             feverChart = new Chart(ctx, {
                 type: 'line', data: { labels: Array.from({length:60}, (_,i)=>i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 4, fill: false, tension: 0.3, pointRadius: 0 }] },
-                options: { 
-                    maintainAspectRatio: false, plugins: { legend: {display: false} },
-                    scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25, callback: (v)=>v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' } }, x: { display: false } }
-                }
+                options: { maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {size: 10}, stepSize: 25, callback: (v)=>v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' } }, x: { display: false } } }
             });
         }
 
         async function sendVote(side) {
             const name = document.getElementById('userName').value || "Anonymous";
             localStorage.setItem('bettorName', name);
-            
             const btns = document.getElementById('btn-container');
             const success = document.getElementById('vote-success');
             btns.style.opacity = "0.3"; btns.style.pointerEvents = "none";
-
             await fetch(`${API_URL}?qIndex=0&vote=${side}&name=${encodeURIComponent(name)}&amt=100`, { mode: 'no-cors' });
-            
             btns.style.display = "none"; success.style.display = "flex";
             setTimeout(() => { success.style.display = "none"; btns.style.display = "grid"; btns.style.opacity = "1"; btns.style.pointerEvents = "auto"; update(); }, 2500);
         }
