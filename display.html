@@ -60,8 +60,8 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9MQh4KIS6tvFC6TKKwtc7aemH4hUBOKUpOLqNfGdQhfxtlTLbjXvowJupgzt9z--M/exec";
         let gaugeChart, feverChart;
-        let alpha = 1;
-        let alphaDir = -0.04;
+        let glowSize = 10;
+        let glowDir = 0.4;
 
         async function update() {
             try {
@@ -93,34 +93,65 @@
             const ctx = document.getElementById('feverLineChart').getContext('2d');
             const currentPrice = history[history.length - 1] || 50;
             const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
+            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72';
+
             if (feverChart) {
                 feverChart.data.datasets[0].data = history;
                 feverChart.data.datasets[0].borderColor = lineColor;
+                // RECALCULATE point radius array to ensure it stays on the LAST item
+                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 10 : 0);
+                feverChart.data.datasets[0].pointBackgroundColor = liveColor;
                 feverChart.update('none');
                 return;
             }
+
             feverChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: Array.from({length: 60}, (_, i) => i), datasets: [{ data: history, borderColor: lineColor, borderWidth: 6, fill: false, tension: 0.3, pointRadius: history.map((_, i) => i === history.length - 1 ? 12 : 0), pointBackgroundColor: 'rgba(0, 255, 157, 1)', pointBorderWidth: 0 }] },
+                data: { 
+                    labels: Array.from({length: 60}, (_, i) => i), 
+                    datasets: [{ 
+                        data: history, 
+                        borderColor: lineColor, 
+                        borderWidth: 6, 
+                        fill: false, 
+                        tension: 0.3, 
+                        pointRadius: history.map((_, i) => i === history.length - 1 ? 10 : 0),
+                        pointBackgroundColor: liveColor,
+                        pointBorderWidth: 0
+                    }] 
+                },
                 options: {
                     maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: {display: false} },
                     scales: {
                         x: { grid: { color: '#2b2f36' }, ticks: { color: '#848e9c', font: {weight: 'bold', size: 14}, callback: (v) => v % 10 === 0 ? ':' + (v < 10 ? '0'+v : v) : '' } },
                         y: { min: 0, max: 100, grid: { color: '#2b2f36' }, ticks: { color: '#ffffff', font: {weight: '900', size: 24}, stepSize: 25, callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' } }
                     }
-                }
+                },
+                plugins: [{
+                    // CUSTOM PLUGIN TO DRAW THE GLOW
+                    afterDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const meta = chart.getDatasetMeta(0);
+                        if (!meta.data.length) return;
+                        const lastPoint = meta.data[meta.data.length - 1];
+                        
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(lastPoint.x, lastPoint.y, 10, 0, 2 * Math.PI);
+                        ctx.shadowBlur = glowSize;
+                        ctx.shadowColor = feverChart.data.datasets[0].pointBackgroundColor;
+                        ctx.fillStyle = feverChart.data.datasets[0].pointBackgroundColor;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }]
             });
         }
 
         setInterval(() => {
-            if (feverChart) {
-                alpha += alphaDir;
-                if (alpha <= 0.2 || alpha >= 1) alphaDir *= -1;
-                const currentPrice = feverChart.data.datasets[0].data.slice(-1)[0];
-                const rgb = currentPrice > 49 ? '0, 255, 157' : '255, 123, 114';
-                feverChart.data.datasets[0].pointBackgroundColor = `rgba(${rgb}, ${alpha})`;
-                feverChart.update('none');
-            }
+            glowSize += glowDir;
+            if (glowSize > 25 || glowSize < 5) glowDir *= -1;
+            if (feverChart) feverChart.update('none');
         }, 50);
 
         setInterval(update, 3000); update();
