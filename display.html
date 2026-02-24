@@ -79,73 +79,85 @@
         }
 
         function drawFever(history, labels) {
-            const ctx = document.getElementById('feverLineChart').getContext('2d');
-            const currentPrice = history[history.length - 1] || 50;
-            const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
-            const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72';
+    const ctx = document.getElementById('feverLineChart').getContext('2d');
+    const currentPrice = history[history.length - 1] || 50;
+    const lineColor = currentPrice > 49 ? '#00c076' : '#ff3b30';
+    const liveColor = currentPrice > 49 ? '#00ff9d' : '#ff7b72';
 
-            if (feverChart) {
-                feverChart.data.labels = labels;
-                feverChart.data.datasets[0].data = history;
-                feverChart.data.datasets[0].borderColor = lineColor;
-                feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 12 : 0);
-                feverChart.data.datasets[0].pointBackgroundColor = liveColor;
-                feverChart.update('none');
-                return;
+    if (feverChart) {
+        feverChart.data.labels = labels;
+        feverChart.data.datasets[0].data = history;
+        feverChart.data.datasets[0].borderColor = lineColor;
+        // Strict: Only the last point gets a radius, all others are 0
+        feverChart.data.datasets[0].pointRadius = history.map((_, i) => i === history.length - 1 ? 8 : 0);
+        feverChart.data.datasets[0].pointBackgroundColor = liveColor;
+        feverChart.update('none');
+        return;
+    }
+
+    feverChart = new Chart(ctx, {
+        type: 'line',
+        data: { 
+            labels: labels, 
+            datasets: [{ 
+                data: history, 
+                borderColor: lineColor, 
+                borderWidth: 6, 
+                fill: false, 
+                tension: 0.3, 
+                // Initial radius setup
+                pointRadius: history.map((_, i) => i === history.length - 1 ? 8 : 0),
+                pointBackgroundColor: liveColor,
+                pointBorderWidth: 0,
+                pointHitRadius: 0, // Prevents hover dots from appearing
+                clip: false 
+            }] 
+        },
+        options: {
+            maintainAspectRatio: false, 
+            animation: { duration: 0 }, 
+            layout: { padding: { top: 20, bottom: 20, left: 10, right: 30 } },
+            plugins: { 
+                legend: {display: false},
+                tooltip: {enabled: false} // Disabling tooltips prevents the "hover dot"
+            },
+            scales: {
+                x: { grid: { color: '#2b2f36' }, ticks: { color: '#848e9c', font: {weight: 'bold', size: 14}, autoSkip: true, maxTicksLimit: 12 } },
+                y: { 
+                    min: 0, max: 100, 
+                    grid: { color: '#2b2f36' }, 
+                    ticks: { 
+                        color: '#ffffff', font: {weight: '900', size: 24}, stepSize: 25, 
+                        callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' 
+                    } 
+                }
             }
-
-            feverChart = new Chart(ctx, {
-                type: 'line',
-                data: { 
-                    labels: labels, 
-                    datasets: [{ 
-                        data: history, 
-                        borderColor: lineColor, 
-                        borderWidth: 6, 
-                        fill: false, 
-                        tension: 0.3, 
-                        pointRadius: history.map((_, i) => i === history.length - 1 ? 12 : 0),
-                        pointBackgroundColor: liveColor,
-                        pointBorderWidth: 0,
-                        clip: false // Fixed: Prevent clipping at 0 and 100
-                    }] 
-                },
-                options: {
-                    maintainAspectRatio: false, 
-                    animation: { duration: 0 }, 
-                    layout: { padding: { top: 20, bottom: 20, left: 10, right: 30 } },
-                    plugins: { legend: {display: false} },
-                    scales: {
-                        x: { grid: { color: '#2b2f36' }, ticks: { color: '#848e9c', font: {weight: 'bold', size: 14}, autoSkip: true, maxTicksLimit: 12 } },
-                        y: { 
-                            min: 0, max: 100, 
-                            grid: { color: '#2b2f36' }, 
-                            ticks: { 
-                                color: '#ffffff', font: {weight: '900', size: 24}, stepSize: 25, 
-                                callback: (v) => v==0?'0':v==25?'25¢':v==50?'50¢':v==75?'75¢':v==100?'$1':'' 
-                            } 
-                        }
-                    }
-                },
-                plugins: [{
-                    afterDraw: (chart) => {
-                        const ctx = chart.ctx;
-                        const meta = chart.getDatasetMeta(0);
-                        if (!meta.data.length) return;
-                        const lastPoint = meta.data[history.length - 1]; 
-                        if(!lastPoint) return;
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.arc(lastPoint.x, lastPoint.y, 10, 0, 2 * Math.PI);
-                        ctx.shadowBlur = glowSize;
-                        ctx.shadowColor = chart.data.datasets[0].pointBackgroundColor;
-                        ctx.fillStyle = chart.data.datasets[0].pointBackgroundColor;
-                        ctx.fill();
-                        ctx.restore();
-                    }
-                }]
-            });
-        }
+        },
+        plugins: [{
+            id: 'glowPoint',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                const meta = chart.getDatasetMeta(0);
+                // Ensure we have data and the last point is valid
+                if (!meta.data.length || meta.data.length !== history.length) return;
+                
+                const lastPoint = meta.data[history.length - 1]; 
+                if(!lastPoint || isNaN(lastPoint.x) || isNaN(lastPoint.y)) return;
+                
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(lastPoint.x, lastPoint.y, 8, 0, 2 * Math.PI);
+                // glowSize is global, vGlow for voter page - using a fallback
+                let s = typeof glowSize !== 'undefined' ? glowSize : (typeof vGlow !== 'undefined' ? vGlow : 10);
+                ctx.shadowBlur = s;
+                ctx.shadowColor = liveColor;
+                ctx.fillStyle = liveColor;
+                ctx.fill();
+                ctx.restore();
+            }
+        }]
+    });
+}
 
         setInterval(() => {
             glowSize += glowDir;
